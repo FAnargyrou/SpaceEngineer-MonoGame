@@ -33,6 +33,10 @@ namespace SpaceEngineer
         // Camera
         OrthographicCamera camera;
 
+        // Input helpers
+        private MouseState _previousState;
+        private MouseState _currentState;
+
         ShipComponent focus;
 
         public IShapeF Bounds { get; }
@@ -110,6 +114,8 @@ namespace SpaceEngineer
 
         public void Interact()
         {
+            _previousState = _currentState;
+            _currentState = Mouse.GetState();
             if (focus != null)
             {
                 float distance = Vector2.Distance(position, focus.GetPosition());
@@ -118,8 +124,8 @@ namespace SpaceEngineer
                     focus = null;
                     return;
                 }
-                MouseState mState = Mouse.GetState();
-                if (mState.LeftButton == ButtonState.Pressed)
+                
+                if (_currentState.LeftButton == ButtonState.Released && _previousState.LeftButton == ButtonState.Pressed)
                     focus.Interact();
 
             }
