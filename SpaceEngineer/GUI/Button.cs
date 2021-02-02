@@ -15,9 +15,11 @@ namespace SpaceEngineer.GUI
         private MouseState _previousMouseState;
         private bool _isHovering;
         private Sprite _btnSprite;
+        private Sprite _iconSprite;
         private Vector2 _position;
         private RectangleF _rectangle;
-        private Vector2 _scale;
+        private Vector2 _scale = new Vector2(1f, 1f);
+        private bool _active = true;
 
         public string text;
 
@@ -32,6 +34,11 @@ namespace SpaceEngineer.GUI
             _btnSprite = sprite;
         }
 
+        public void AddIconSprite(Sprite iconSprite)
+        {
+            _iconSprite = iconSprite;
+        }
+
         public void Draw(SpriteBatch spriteBatch)
         {
             Color colour = Color.White;
@@ -43,10 +50,14 @@ namespace SpaceEngineer.GUI
 
             spriteBatch.Draw(_btnSprite, _position, 0f, _scale);
             spriteBatch.DrawRectangle(_rectangle, Color.Red);
+            if (_iconSprite != null)
+                spriteBatch.Draw(_iconSprite, _position, 0f, _scale);
         }
 
         public void Update(GameTime gameTime)
         {
+            if (!_active) return;
+
             _previousMouseState = _currentMouseState;
             _currentMouseState = Mouse.GetState();
 
@@ -72,10 +83,6 @@ namespace SpaceEngineer.GUI
 
         public void SetPosition(Vector2 position)
         {
-            /*float widthScale = _btnSprite.TextureRegion.Width * _scale.X;
-            float heightScale = _btnSprite.TextureRegion.Height * _scale.Y;
-            position.X += widthScale;
-            position.Y += heightScale;*/
             _position = position;
             CreateRectangle();
         }
@@ -99,6 +106,11 @@ namespace SpaceEngineer.GUI
             Transform2 transform = new Transform2(_position);
             transform.Scale = _scale;
             _rectangle = _btnSprite.GetBoundingRectangle(transform);
+        }
+
+        public void SetActive(bool toggle)
+        {
+            _active = toggle;
         }
     }
 }

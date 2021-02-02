@@ -15,6 +15,7 @@ using MonoGame.Extended.Collisions;
 using System;
 using SpaceEngineer.GameObjects;
 using SpaceEngineer.GUI;
+using SpaceEngineer.Hud;
 
 namespace SpaceEngineer
 {
@@ -35,8 +36,8 @@ namespace SpaceEngineer
         TiledMap _tiledMap;
         TiledMapRenderer _tiledMapRenderer;
 
-        // Player GUI
-        StackPanel _inventory;
+        InventoryHUD playerInventory;
+        InventoryHUD toolboxInventory;
 
         // Camera; Moved with Player
         OrthographicCamera _camera;
@@ -115,23 +116,38 @@ namespace SpaceEngineer
                 _collisionComponent.Insert(entity);
             }
 
-            Vector2 inventoryPos = new Vector2(900f, 100f);
-            Size2 inventorySize = new Size2(0f, 0f);
 
-            _inventory = new StackPanel(inventoryPos, inventorySize, 10f, Orientation.Horizontal);
-
-            // MAGIC NUMBERS
-
-            Sprite btnSprite = new Sprite(Content.Load<Texture2D>("GUI/inventory_slot"));
             Vector2 guiScale = new Vector2(_cameraScale, _cameraScale);
-            Button inventorySlot1 = new Button(btnSprite, Vector2.Zero);
-            inventorySlot1.SetScale(guiScale);
-            Button inventorySlot2 = new Button(btnSprite, Vector2.Zero);
-            inventorySlot2.SetScale(guiScale);
+            Sprite btnSprite = new Sprite(Content.Load<Texture2D>("GUI/inventory_slot"));
 
-            _inventory.AddComponent(inventorySlot1);
-            _inventory.AddComponent(inventorySlot2);
+            Vector2 inventoryPos = new Vector2(900f, 100f);
+            Inventory pInventory = new Inventory();
 
+            Vector2 toolboxInventoryPos = new Vector2(400f, 400f);
+            Inventory tInventory = new Inventory();
+
+            Sprite drillSprite = new Sprite(Content.Load<Texture2D>("Items/drill"));
+            Item drill = new Item(drillSprite);
+            tInventory.AddItem(drill);
+
+            Sprite filterSprite = new Sprite(Content.Load<Texture2D>("Items/O2Filter"));
+            Item filter = new Item(filterSprite);
+            tInventory.AddItem(filter);
+
+            Sprite swSprite = new Sprite(Content.Load<Texture2D>("Items/screwdriver"));
+            Item sw = new Item(swSprite);
+            tInventory.AddItem(sw);
+
+            Sprite wrenchSprite = new Sprite(Content.Load<Texture2D>("Items/wrench"));
+            Item wrench = new Item(wrenchSprite);
+            tInventory.AddItem(wrench);
+            tInventory.SetDepositInventory(pInventory);
+            pInventory.SetDepositInventory(tInventory);
+
+            playerInventory = new InventoryHUD(inventoryPos, btnSprite, guiScale, pInventory);
+
+            tInventory.slots = 4;
+            toolboxInventory = new InventoryHUD(toolboxInventoryPos, btnSprite, guiScale, tInventory);
         }
 
         private void Button_OnClick(object sender, EventArgs e)
@@ -154,7 +170,8 @@ namespace SpaceEngineer
             _tiledMapRenderer.Update(gameTime);
             // Update used for Collision Detection
             _collisionComponent.Update(gameTime);
-            _inventory.Update(gameTime);
+            playerInventory.Update(gameTime);
+            toolboxInventory.Update(gameTime);
 
             base.Update(gameTime);
         }
@@ -164,8 +181,6 @@ namespace SpaceEngineer
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
             Matrix transform = _camera.GetViewMatrix();
-
-            // button.position = player.GetPosition(); // _camera.ScreenToWorld(button.position.X, button.position.Y);
 
             _tiledMapRenderer.Draw(_tiledMap.GetLayer("Space"), transform);
             _tiledMapRenderer.Draw(_tiledMap.GetLayer("ShipFloor"), transform);
@@ -180,7 +195,12 @@ namespace SpaceEngineer
             _spriteBatch.End();
 
             _tiledMapRenderer.Draw(_tiledMap.GetLayer("UpperLayer"), transform);
-            _inventory.Draw(_spriteBatch);
+
+            // HUD Section
+            _spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+            playerInventory.Draw(_spriteBatch);
+            toolboxInventory.Draw(_spriteBatch);
+            _spriteBatch.End();
 
             base.Draw(gameTime);
         }

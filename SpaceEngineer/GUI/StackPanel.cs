@@ -14,7 +14,7 @@ namespace SpaceEngineer.GUI
     }
     public class StackPanel : IGuiComponent
     {
-        private readonly List<IGuiComponent> _childComponents = new List<IGuiComponent>();
+        public List<IGuiComponent> childComponents;
         private RectangleF _panelSize;
         private Orientation _orientation;
         private float _margin = 0f;
@@ -26,25 +26,25 @@ namespace SpaceEngineer.GUI
             _panelSize = new RectangleF(x, y, width, height);
             _orientation = orientation;
             _margin = margin;
+            childComponents = new List<IGuiComponent>();
         }
         public StackPanel(Vector2 position, Size2 size, float margin = 0f, Orientation orientation = Orientation.Horizontal)
         {
             _panelSize = new RectangleF(position, size);
             _orientation = orientation;
             _margin = margin;
+            childComponents = new List<IGuiComponent>();
         }
 
         public void Draw(SpriteBatch spriteBatch)
         {
-            spriteBatch.Begin();
-            foreach (IGuiComponent child in _childComponents)
+            foreach (IGuiComponent child in childComponents)
                 child.Draw(spriteBatch);
-            spriteBatch.End();
         }
 
         public void Update(GameTime gameTime)
         {
-            foreach (IGuiComponent child in _childComponents)
+            foreach (IGuiComponent child in childComponents)
             {
                 child.Update(gameTime);
             }
@@ -56,7 +56,7 @@ namespace SpaceEngineer.GUI
 
             Vector2 newPosition = GetPosition();
 
-            foreach (IGuiComponent child in _childComponents)
+            foreach (IGuiComponent child in childComponents)
             {
                 Size2 childSize = child.GetSize();
 
@@ -71,7 +71,7 @@ namespace SpaceEngineer.GUI
             }
 
             component.SetPosition(newPosition);
-            _childComponents.Add(component);
+            childComponents.Add(component);
         }
 
         public Vector2 GetPosition()
