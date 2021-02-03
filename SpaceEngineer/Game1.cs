@@ -79,29 +79,6 @@ namespace SpaceEngineer
 
             _collisionComponent = new CollisionComponent(new RectangleF(0, 0, MapWidth, MapHeight));
 
-            TiledMapObject[] objects = _tiledMap.GetLayer<TiledMapObjectLayer>("Objects").Objects;
-
-            // Loops through Objects created in Tiled
-            // TODO - Refactor into reusable code for other objects
-            foreach (TiledMapObject obj in objects)
-            {
-                if (obj.Name == "O2Component")
-                {
-
-                    if (obj.Properties.ContainsKey("sprite"))
-                    {
-                        string assetName = obj.Properties["sprite"];
-                        Sprite sprite = new Sprite(Content.Load<Texture2D>(assetName));
-                        Vector2 pos = Vector2.Zero;
-                        pos.X = obj.Position.X + sprite.Origin.X;
-                        pos.Y = obj.Position.Y + sprite.Origin.Y;
-                        BreakableComponent shipComponent = new BreakableComponent(sprite, pos);
-                        _entities.Add(shipComponent);
-                    }
-                        
-                }
-            }
-
             GenerateTiledCollisions();
 
             // Hard-coded player starting position
@@ -111,43 +88,14 @@ namespace SpaceEngineer
             player = new Player(Content.Load<SpriteSheet>("player.sf", new JsonContentLoader()), spawn, _camera);
             _collisionComponent.Insert(player);
 
+            GenerateHud();
+            GenerateShipObjects();
+
             foreach (IEntity entity in _entities)
             {
                 _collisionComponent.Insert(entity);
             }
 
-
-            Vector2 guiScale = new Vector2(_cameraScale, _cameraScale);
-            Sprite btnSprite = new Sprite(Content.Load<Texture2D>("GUI/inventory_slot"));
-
-            Vector2 inventoryPos = new Vector2(900f, 100f);
-            Inventory pInventory = new Inventory();
-
-            Vector2 toolboxInventoryPos = new Vector2(400f, 400f);
-            Inventory tInventory = new Inventory();
-
-            Sprite drillSprite = new Sprite(Content.Load<Texture2D>("Items/drill"));
-            Item drill = new Item(drillSprite);
-            tInventory.AddItem(drill);
-
-            Sprite filterSprite = new Sprite(Content.Load<Texture2D>("Items/O2Filter"));
-            Item filter = new Item(filterSprite);
-            tInventory.AddItem(filter);
-
-            Sprite swSprite = new Sprite(Content.Load<Texture2D>("Items/screwdriver"));
-            Item sw = new Item(swSprite);
-            tInventory.AddItem(sw);
-
-            Sprite wrenchSprite = new Sprite(Content.Load<Texture2D>("Items/wrench"));
-            Item wrench = new Item(wrenchSprite);
-            tInventory.AddItem(wrench);
-            tInventory.SetDepositInventory(pInventory);
-            pInventory.SetDepositInventory(tInventory);
-
-            playerInventory = new InventoryHUD(inventoryPos, btnSprite, guiScale, pInventory);
-
-            tInventory.slots = 4;
-            toolboxInventory = new InventoryHUD(toolboxInventoryPos, btnSprite, guiScale, tInventory);
         }
 
         private void Button_OnClick(object sender, EventArgs e)
@@ -231,6 +179,73 @@ namespace SpaceEngineer
 
                 }
             }
+        }
+
+        private void GenerateShipObjects()
+        {
+            TiledMapObject[] objects = _tiledMap.GetLayer<TiledMapObjectLayer>("Objects").Objects;
+
+            // Loops through Objects created in Tiled
+            // TODO - Refactor into reusable code for other objects
+            foreach (TiledMapObject obj in objects)
+            {
+                string assetName;
+                if (!obj.Properties.TryGetValue("sprite", out assetName)) continue;
+
+                Sprite sprite = new Sprite(Content.Load<Texture2D>(assetName));
+                Vector2 pos = Vector2.Zero;
+                pos.X = obj.Position.X + sprite.Origin.X;
+                pos.Y = obj.Position.Y + sprite.Origin.Y;
+
+                ShipComponent component = null;
+                switch (obj.Name)
+                {
+                    case "O2Component":
+                        component = new BreakableComponent(sprite, pos);
+                        break;
+                    case "Toolbox":
+                        component = new Toolbox(sprite, pos, playerInventory, toolboxInventory);
+                        break;
+                }
+                if (component != null)
+                    _entities.Add(component);
+
+            }
+        }
+
+        private void GenerateHud()
+        {
+
+            Vector2 guiScale = new Vector2(_cameraScale, _cameraScale);
+            Sprite btnSprite = new Sprite(Content.Load<Texture2D>("GUI/inventory_slot"));
+
+            Vector2 inventoryPos = new Vector2(900f, 100f);
+            Inventory pInventory = new Inventory();
+
+            Vector2 toolboxInventoryPos = new Vector2(400f, 400f);
+            Inventory tInventory = new Inventory();
+            tInventory.slots = 4;
+
+            Sprite drillSprite = new Sprite(Content.Load<Texture2D>("Items/drill"));
+            Item drill = new Item(drillSprite);
+            tInventory.AddItem(drill);
+
+            Sprite filterSprite = new Sprite(Content.Load<Texture2D>("Items/O2Filter"));
+            Item filter = new Item(filterSprite);
+            tInventory.AddItem(filter);
+
+            Sprite swSprite = new Sprite(Content.Load<Texture2D>("Items/screwdriver"));
+            Item sw = new Item(swSprite);
+            tInventory.AddItem(sw);
+
+            Sprite wrenchSprite = new Sprite(Content.Load<Texture2D>("Items/wrench"));
+            Item wrench = new Item(wrenchSprite);
+            tInventory.AddItem(wrench);
+            tInventory.SetDepositInventory(pInventory);
+            pInventory.SetDepositInventory(tInventory);
+
+            playerInventory = new InventoryHUD(inventoryPos, btnSprite, guiScale, pInventory);
+            toolboxInventory = new InventoryHUD(toolboxInventoryPos, btnSprite, guiScale, tInventory);
         }
 
         private void UpdateShipComponent(ShipComponent component, GameTime gameTime)

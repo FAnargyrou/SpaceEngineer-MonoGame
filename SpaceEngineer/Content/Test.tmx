@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.4" tiledversion="1.4.3" orientation="orthogonal" renderorder="right-down" width="15" height="15" tilewidth="32" tileheight="32" infinite="0" nextlayerid="7" nextobjectid="3">
+<map version="1.4" tiledversion="1.4.3" orientation="orthogonal" renderorder="right-down" width="15" height="15" tilewidth="32" tileheight="32" infinite="0" nextlayerid="7" nextobjectid="4">
  <tileset firstgid="1" source="Main.tsx"/>
  <layer id="1" name="Space" width="15" height="15">
   <data encoding="base64">
@@ -24,11 +24,16 @@
  <objectgroup id="3" name="Objects">
   <object id="1" name="O2Component" type="ShipComponent" gid="13" x="256" y="128" width="32" height="32">
    <properties>
-    <property name="sprite" value="o2"/>
+    <property name="sprite" value="ship/o2"/>
    </properties>
   </object>
   <object id="2" name="PlayerSpawn" type="Coordinates" x="239.333" y="204.667">
    <point/>
+  </object>
+  <object id="3" name="Toolbox" type="ShipComponent" gid="38" x="352" y="160" width="32" height="32">
+   <properties>
+    <property name="sprite" value="Ship/toolbox"/>
+   </properties>
   </object>
  </objectgroup>
 </map>

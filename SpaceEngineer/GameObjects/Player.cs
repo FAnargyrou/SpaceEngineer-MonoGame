@@ -121,6 +121,9 @@ namespace SpaceEngineer
                 float distance = Vector2.Distance(position, focus.GetPosition());
                 if (distance > interactRad)
                 {
+                    // If player is too far from the Interactable Object (ie. ShipComponent)
+                    // then cancel current action and reset focus to a null value to prevent it from being interacted again from a distance
+                    focus.Cancel();
                     focus = null;
                     return;
                 }

@@ -75,9 +75,26 @@ namespace SpaceEngineer.Hud
             }
         }
 
+        /// <summary>
+        /// Toggles the entire HUD to be shown.
+        /// </summary>
+        /// <param name="toggle">True everything is rendered and updated; False nothing is rendered or updated</param>
         public void SetActive(bool toggle)
         {
             _active = toggle;
+        }
+
+        /// <summary>
+        /// Toggles the inventory buttons to be interactable.
+        /// Please note that this will only disable the buttons, the Inventory slots will still be shown
+        /// </summary>
+        /// <param name="toggle">True enables player to interact with button; False disables interaction completely</param>
+        public void ToggleButtons(bool toggle)
+        {
+            for (int i = 0; i < _inventory.slots; ++i)
+            {
+                _slots[i].button.SetActive(toggle);
+            }
         }
     }
 }
