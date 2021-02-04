@@ -13,31 +13,20 @@ namespace SpaceEngineer.GameObjects.Ship
     {
         private InventoryHUD _playerInventory;
         private InventoryHUD _toolboxInventory;
-        public override IShapeF Bounds { get; }
-        public Toolbox(Sprite sprite, Vector2 position, InventoryHUD playerInventory, InventoryHUD toolboxInventory)
+
+        public Toolbox(Sprite sprite, Vector2 position, InventoryHUD playerInventory, InventoryHUD toolboxInventory) 
+            : base (sprite, position)
         {
-            _position = position;
-            _sprite = sprite;
             _playerInventory = playerInventory;
             _toolboxInventory = toolboxInventory;
             _playerInventory.ToggleButtons(false);
             _toolboxInventory.SetActive(false);
-
-            Transform2 transform = new Transform2(position);
-            RectangleF rectangle = _sprite.GetBoundingRectangle(transform);
-
-            Bounds = rectangle;
         }
 
         public override void Cancel()
         {
             _toolboxInventory.SetActive(false);
             _playerInventory.ToggleButtons(false);
-        }
-
-        public override void Draw(SpriteBatch spriteBatch)
-        {
-            spriteBatch.Draw(_sprite, _position);
         }
 
         public override void Interact()

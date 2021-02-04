@@ -201,7 +201,7 @@ namespace SpaceEngineer
                 switch (obj.Name)
                 {
                     case "O2Component":
-                        component = new BreakableComponent(sprite, pos);
+                        component = new BreakableComponent(sprite, pos, ItemType.O2Filter);
                         break;
                     case "Toolbox":
                         component = new Toolbox(sprite, pos, playerInventory, toolboxInventory);
@@ -227,25 +227,27 @@ namespace SpaceEngineer
             tInventory.slots = 4;
 
             Sprite drillSprite = new Sprite(Content.Load<Texture2D>("Items/drill"));
-            Item drill = new Item(drillSprite);
+            Item drill = new Item(drillSprite, ItemType.Drill);
             tInventory.AddItem(drill);
 
             Sprite filterSprite = new Sprite(Content.Load<Texture2D>("Items/O2Filter"));
-            Item filter = new Item(filterSprite);
+            Item filter = new Item(filterSprite, ItemType.O2Filter);
             tInventory.AddItem(filter);
 
             Sprite swSprite = new Sprite(Content.Load<Texture2D>("Items/screwdriver"));
-            Item sw = new Item(swSprite);
+            Item sw = new Item(swSprite, ItemType.Screwdriver);
             tInventory.AddItem(sw);
 
             Sprite wrenchSprite = new Sprite(Content.Load<Texture2D>("Items/wrench"));
-            Item wrench = new Item(wrenchSprite);
+            Item wrench = new Item(wrenchSprite, ItemType.Wrench);
             tInventory.AddItem(wrench);
             tInventory.SetDepositInventory(pInventory);
             pInventory.SetDepositInventory(tInventory);
 
             playerInventory = new InventoryHUD(inventoryPos, btnSprite, guiScale, pInventory);
             toolboxInventory = new InventoryHUD(toolboxInventoryPos, btnSprite, guiScale, tInventory);
+
+            player.SetInventory(pInventory);
         }
 
         private void UpdateShipComponent(ShipComponent component, GameTime gameTime)

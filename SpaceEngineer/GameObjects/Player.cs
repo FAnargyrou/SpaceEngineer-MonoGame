@@ -8,8 +8,9 @@ using MonoGame.Extended;
 using MonoGame.Extended.Collisions;
 using MonoGame.Extended.Sprites;
 using SpaceEngineer.GameObjects.Ship;
+using SpaceEngineer.Hud;
 
-namespace SpaceEngineer
+namespace SpaceEngineer.GameObjects
 {
     public enum Direction 
     {
@@ -21,38 +22,39 @@ namespace SpaceEngineer
     {
         // Movement Variables
 
-        Vector2 position;
-        Vector2 movement;
-        Vector2 velocity;
-        float movementSpeed = 100f;
-        AnimatedSprite sprite;
-        string currentAnimation;
-        Direction currentDir;
+        private Vector2 _position;
+        private Vector2 _movement;
+        private Vector2 _velocity;
+        private float _movementSpeed = 100f;
+        private AnimatedSprite _sprite;
+        private string _currentAnimation;
+        private Direction _currentDir;
         public float interactRad = 30f;
 
         // Camera
-        OrthographicCamera camera;
+        OrthographicCamera _camera;
 
         // Input helpers
         private MouseState _previousState;
         private MouseState _currentState;
 
-        ShipComponent focus;
+        private ShipComponent _focus;
+        private Inventory _inventory;
 
         public IShapeF Bounds { get; }
 
         public Player(SpriteSheet spriteSheet, Vector2 position, OrthographicCamera camera)
         {
-            movement = new Vector2(0f, 0f);
-            velocity = new Vector2(0f, 0f);
-            this.position = position;
-            sprite = new AnimatedSprite(spriteSheet);
-            currentAnimation = "idleRight";
-            sprite.Play(currentAnimation);
-            this.camera = camera;
+            _movement = new Vector2(0f, 0f);
+            _velocity = new Vector2(0f, 0f);
+            _position = position;
+            _sprite = new AnimatedSprite(spriteSheet);
+            _currentAnimation = "idleRight";
+            _sprite.Play(_currentAnimation);
+            _camera = camera;
             Vector2 boundsStartPos = position;
-            boundsStartPos.X -= sprite.TextureRegion.Width / 4;
-            Bounds = new RectangleF(boundsStartPos, new Size2(sprite.TextureRegion.Width / 2, sprite.TextureRegion.Height / 2));
+            boundsStartPos.X -= _sprite.TextureRegion.Width / 4;
+            Bounds = new RectangleF(boundsStartPos, new Size2(_sprite.TextureRegion.Width / 2, _sprite.TextureRegion.Height / 2));
         }
 
         public void Update(GameTime gameTime)
@@ -65,71 +67,78 @@ namespace SpaceEngineer
 
         public void Draw(SpriteBatch spriteBatch)
         {
-            spriteBatch.Draw(sprite, position);
+            spriteBatch.Draw(_sprite, _position);
             spriteBatch.DrawRectangle((RectangleF)Bounds, Color.Red, 3);
         }
 
         private void Move(float deltaSeconds)
         {
             KeyboardState kstate = Keyboard.GetState();
-            movement = new Vector2(0f, 0f);
-            velocity = new Vector2(0f, 0f);
+            _movement = new Vector2(0f, 0f);
+            _velocity = new Vector2(0f, 0f);
 
             if (kstate.IsKeyDown(Keys.W))
-                movement.Y -= 1f;
+                _movement.Y -= 1f;
             if (kstate.IsKeyDown(Keys.S))
-                movement.Y += 1f;
+                _movement.Y += 1f;
             if (kstate.IsKeyDown(Keys.A))
-                movement.X -= 1f;
+                _movement.X -= 1f;
             if (kstate.IsKeyDown(Keys.D))
-                movement.X += 1f;
+                _movement.X += 1f;
 
-            if (movement.Length() > 0f)
-                movement.Normalize();
-            if (movement.X != 0f)
-                velocity.X += movement.X * movementSpeed * deltaSeconds;
-            if (movement.Y != 0f)
-                velocity.Y += movement.Y * movementSpeed * deltaSeconds;
+            if (_movement.Length() > 0f)
+                _movement.Normalize();
+            if (_movement.X != 0f)
+                _velocity.X += _movement.X * _movementSpeed * deltaSeconds;
+            if (_movement.Y != 0f)
+                _velocity.Y += _movement.Y * _movementSpeed * deltaSeconds;
 
             // Moves player and collision box
-            position += velocity;
-            Bounds.Position += velocity;
+            _position += _velocity;
+            Bounds.Position += _velocity;
 
-            if (movement.X != 0f)
+            if (_movement.X != 0f)
             {
-                currentDir = movement.X < 0f ? Direction.Left : Direction.Right;
+                _currentDir = _movement.X < 0f ? Direction.Left : Direction.Right;
             }
 
-            if (movement.X > 0f || movement.Y > 0f)
-                currentAnimation = "walkRight";
-            else if (movement.X < 0f || movement.Y < 0f)
-                currentAnimation = "walkLeft";
+            if (_movement.X > 0f || _movement.Y > 0f)
+                _currentAnimation = "walkRight";
+            else if (_movement.X < 0f || _movement.Y < 0f)
+                _currentAnimation = "walkLeft";
             else
-                currentAnimation = currentDir == Direction.Right ? currentAnimation = "idleRight" : "idleLeft";
+                _currentAnimation = _currentDir == Direction.Right ? _currentAnimation = "idleRight" : "idleLeft";
 
-            sprite.Play(currentAnimation);
-            sprite.Update(deltaSeconds);
-            camera.LookAt(position);
+            _sprite.Play(_currentAnimation);
+            _sprite.Update(deltaSeconds);
+            _camera.LookAt(_position);
         }
 
         public void Interact()
         {
             _previousState = _currentState;
             _currentState = Mouse.GetState();
-            if (focus != null)
+            if (_focus != null)
             {
-                float distance = Vector2.Distance(position, focus.GetPosition());
+                float distance = Vector2.Distance(_position, _focus.GetPosition());
                 if (distance > interactRad)
                 {
                     // If player is too far from the Interactable Object (ie. ShipComponent)
                     // then cancel current action and reset focus to a null value to prevent it from being interacted again from a distance
-                    focus.Cancel();
-                    focus = null;
+                    _focus.Cancel();
+                    _focus = null;
                     return;
                 }
-                
+
                 if (_currentState.LeftButton == ButtonState.Released && _previousState.LeftButton == ButtonState.Pressed)
-                    focus.Interact();
+                {
+                    if (_focus is BreakableComponent b)
+                    {
+                        Item item = _inventory.items.Find(i => i.itemType == b.GetRequiredItem());
+                        if (item == null) return;
+                    }
+                    _focus.Interact();
+                }
 
             }
         }
@@ -137,7 +146,7 @@ namespace SpaceEngineer
         public void OnCollision(CollisionEventArgs collisionInfo)
         {
             // If collision is found, prevent player and collision box from moving through
-            position -= collisionInfo.PenetrationVector;
+            _position -= collisionInfo.PenetrationVector;
             Bounds.Position -= collisionInfo.PenetrationVector;
 
             // TODO - Add collision detection to check if player is close enough to interact with a component
@@ -145,12 +154,17 @@ namespace SpaceEngineer
 
         public void SetFocus(ShipComponent comp)
         {
-            focus = comp;
+            _focus = comp;
+        }
+
+        public void SetInventory(Inventory inventory)
+        {
+            _inventory = inventory;
         }
 
         public Vector2 GetPosition()
         {
-            return position;
+            return _position;
         }
     }
 }
