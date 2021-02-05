@@ -85,7 +85,12 @@ namespace SpaceEngineer
             // TODO - Obtain starting point from TileMap (using Objects above)
             Vector2 spawn = new Vector2(100f, 100f);
 
-            player = new Player(Content.Load<SpriteSheet>("player.sf", new JsonContentLoader()), spawn, _camera);
+            Sprite progressFill = new Sprite(Content.Load<Texture2D>("GUI/progressbar_fill"));
+            Sprite progressBorder = new Sprite(Content.Load<Texture2D>("GUI/progressbar_border"));
+
+            ProgressBar fixProgress = new ProgressBar(progressFill, spawn, new Vector2(1f, 1f), progressBorder);
+
+            player = new Player(Content.Load<SpriteSheet>("player.sf", new JsonContentLoader()), spawn, _camera, fixProgress);
             _collisionComponent.Insert(player);
 
             GenerateHud();

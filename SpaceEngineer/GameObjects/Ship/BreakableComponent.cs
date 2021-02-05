@@ -13,19 +13,21 @@ namespace SpaceEngineer.GameObjects.Ship
     {
         private bool _isFixing = false;
         private bool _isBroken = false;
-        private float _fixTime = 100f;
+        private float _fixTime = 50f;
         private float _currentFixTime = 0f;
         private float _fixRate = 10f;
         private ItemType _requiredItem;
 
         public override void Cancel()
         {
-            // TODO - Add cancel action when player moves away
+            _currentFixTime = 0f;
+            _isFixing = false;
         }
 
         public BreakableComponent(Sprite sprite, Vector2 position, ItemType requiredItem) : base(sprite, position)
         {
             _requiredItem = requiredItem;
+            _isBroken = true;
         }
 
         public override void Interact()
@@ -47,7 +49,6 @@ namespace SpaceEngineer.GameObjects.Ship
                 {
                     _isBroken = false;
                     _isFixing = false;
-                    _currentFixTime = 0f;
                 }
             }
         }
@@ -57,9 +58,28 @@ namespace SpaceEngineer.GameObjects.Ship
             return _requiredItem;
         }
 
-        public void BreakComponent(bool toggle)
+        public void SetBroken()
         {
-            _isBroken = toggle;
+            _isBroken = true;
+            _currentFixTime = 0f;
+        }
+
+        /// <summary>
+        /// Gets _isBroken value
+        /// </summary>
+        /// <returns>True if component needs fixing; false if not</returns>
+        public bool IsBroken()
+        {
+            return _isBroken;
+        }
+
+        /// <summary>
+        /// Gets fix progress in percentage
+        /// </summary>
+        /// <returns>return value between 0f and 1f</returns>
+        public float GetFixProgress()
+        {
+            return _currentFixTime / _fixTime;
         }
     }
 }

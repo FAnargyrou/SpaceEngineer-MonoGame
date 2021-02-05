@@ -8,6 +8,7 @@ using MonoGame.Extended;
 using MonoGame.Extended.Collisions;
 using MonoGame.Extended.Sprites;
 using SpaceEngineer.GameObjects.Ship;
+using SpaceEngineer.GUI;
 using SpaceEngineer.Hud;
 
 namespace SpaceEngineer.GameObjects
@@ -41,9 +42,11 @@ namespace SpaceEngineer.GameObjects
         private ShipComponent _focus;
         private Inventory _inventory;
 
+        private ProgressBar _fixProgress;
+
         public IShapeF Bounds { get; }
 
-        public Player(SpriteSheet spriteSheet, Vector2 position, OrthographicCamera camera)
+        public Player(SpriteSheet spriteSheet, Vector2 position, OrthographicCamera camera, ProgressBar fixProgress)
         {
             _movement = new Vector2(0f, 0f);
             _velocity = new Vector2(0f, 0f);
@@ -55,12 +58,16 @@ namespace SpaceEngineer.GameObjects
             Vector2 boundsStartPos = position;
             boundsStartPos.X -= _sprite.TextureRegion.Width / 4;
             Bounds = new RectangleF(boundsStartPos, new Size2(_sprite.TextureRegion.Width / 2, _sprite.TextureRegion.Height / 2));
+            _fixProgress = fixProgress;
+            Vector2 progressBarPos = _fixProgress.GetPosition();
+            progressBarPos.Y -= _sprite.TextureRegion.Height;
+            _fixProgress.SetPosition(progressBarPos);
+            _fixProgress.SetActive(false);
         }
 
         public void Update(GameTime gameTime)
         {
             Move((float)gameTime.ElapsedGameTime.TotalSeconds);
-
             Interact();
             
         }
@@ -69,6 +76,8 @@ namespace SpaceEngineer.GameObjects
         {
             spriteBatch.Draw(_sprite, _position);
             spriteBatch.DrawRectangle((RectangleF)Bounds, Color.Red, 3);
+
+            _fixProgress.Draw(spriteBatch);
         }
 
         private void Move(float deltaSeconds)
@@ -93,9 +102,14 @@ namespace SpaceEngineer.GameObjects
             if (_movement.Y != 0f)
                 _velocity.Y += _movement.Y * _movementSpeed * deltaSeconds;
 
-            // Moves player and collision box
+            // Moves player, collision box and Progress Bar
             _position += _velocity;
             Bounds.Position += _velocity;
+            Vector2 progressBarPos = _fixProgress.GetPosition();
+            progressBarPos = _position;
+            progressBarPos.Y -= _sprite.TextureRegion.Height;
+            progressBarPos.X -= _sprite.TextureRegion.Width / 2; 
+            _fixProgress.SetPosition(progressBarPos);
 
             if (_movement.X != 0f)
             {
@@ -127,17 +141,27 @@ namespace SpaceEngineer.GameObjects
                     // then cancel current action and reset focus to a null value to prevent it from being interacted again from a distance
                     _focus.Cancel();
                     _focus = null;
+                    _fixProgress.SetActive(false);
                     return;
                 }
 
+                BreakableComponent b = _focus as BreakableComponent;
+
                 if (_currentState.LeftButton == ButtonState.Released && _previousState.LeftButton == ButtonState.Pressed)
                 {
-                    if (_focus is BreakableComponent b)
+                    if (b != null)
                     {
+                        if (!b.IsBroken()) return;
                         Item item = _inventory.items.Find(i => i.itemType == b.GetRequiredItem());
                         if (item == null) return;
+                        _fixProgress.SetActive(true);
                     }
                     _focus.Interact();
+                }
+
+                if (b != null)
+                {
+                    _fixProgress.UpdateProgress(b.GetFixProgress());
                 }
 
             }
