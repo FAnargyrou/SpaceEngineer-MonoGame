@@ -32,9 +32,6 @@ namespace SpaceEngineer.GameObjects.Ship
 
         public override void Interact()
         {
-            Console.WriteLine("Interacting...");
-            // TODO = Add interaction logic
-
             _isFixing = true;
         }
 
@@ -58,7 +55,7 @@ namespace SpaceEngineer.GameObjects.Ship
             return _requiredItem;
         }
 
-        public void SetBroken()
+        public virtual void ActivateEvent()
         {
             _isBroken = true;
             _currentFixTime = 0f;
@@ -79,6 +76,7 @@ namespace SpaceEngineer.GameObjects.Ship
         /// <returns>return value between 0f and 1f</returns>
         public float GetFixProgress()
         {
+            Console.WriteLine(_currentFixTime / _fixTime);
             return _currentFixTime / _fixTime;
         }
     }

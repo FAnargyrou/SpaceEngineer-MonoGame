@@ -1,32 +1,33 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using MonoGame.Extended.Serialization;
-using MonoGame.Extended.Content;
-using MonoGame.Extended.Sprites;
 using MonoGame.Extended;
-using MonoGame.Extended.ViewportAdapters;
+using MonoGame.Extended.Collisions;
+using MonoGame.Extended.Content;
+using MonoGame.Extended.Serialization;
+using MonoGame.Extended.Sprites;
 using MonoGame.Extended.Tiled;
 using MonoGame.Extended.Tiled.Renderers;
-using SpaceEngineer.GameObjects.Ship;
-using MonoGame.Extended.Collisions;
-using System;
+using MonoGame.Extended.ViewportAdapters;
 using SpaceEngineer.GameObjects;
+using SpaceEngineer.GameObjects.Ship;
 using SpaceEngineer.GUI;
 using SpaceEngineer.Hud;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
 namespace SpaceEngineer
 {
-    public class Game1 : Game
+    /// <summary>
+    /// Handles game rules and mechanics
+    /// </summary>
+    public class World
     {
-        private GraphicsDeviceManager _graphics;
-        private SpriteBatch _spriteBatch;
-
+        #region PrivateVariables
+        private readonly MainGame _game;
         // List of GameObjects; Also used by CollisionComponent for Collision detection
         private readonly List<ShipComponent> _entities = new List<ShipComponent>();
-        private Player player;
+        private Player _player;
         private CollisionComponent _collisionComponent;
 
         // Map boundaries defined by TileMap dimensions and used by the CollisionComponent
@@ -42,57 +43,20 @@ namespace SpaceEngineer
         // Camera; Moved with Player
         OrthographicCamera _camera;
         float _cameraScale;
+        #endregion
 
-        public Game1()
+        public World(MainGame game, BoxingViewportAdapter viewport)
         {
-            _graphics = new GraphicsDeviceManager(this);
-            Content.RootDirectory = "Content";
-            IsMouseVisible = true;
-        }
-
-        protected override void Initialize()
-        {
-            // TODO: Add your initialization logic here
-
-            BoxingViewportAdapter viewport = new BoxingViewportAdapter(Window, GraphicsDevice, 1280, 720);
-
-            _graphics.PreferredBackBufferWidth = 1280;
-            _graphics.PreferredBackBufferHeight = 720;
-            _graphics.ApplyChanges();
-
+            _game = game;
             _camera = new OrthographicCamera(viewport);
             _cameraScale = 4f;
             _camera.ZoomIn(_cameraScale);
-
-            base.Initialize();
         }
 
-        protected override void LoadContent()
+        public void LoadContent()
         {
-            _spriteBatch = new SpriteBatch(GraphicsDevice);
-
-            _tiledMap = Content.Load<TiledMap>("Test");
-            _tiledMapRenderer = new TiledMapRenderer(GraphicsDevice, _tiledMap);
-
-            MapWidth = _tiledMap.WidthInPixels;
-            MapHeight = _tiledMap.HeightInPixels;
-
-            _collisionComponent = new CollisionComponent(new RectangleF(0, 0, MapWidth, MapHeight));
-
-            GenerateTiledCollisions();
-
-            // Hard-coded player starting position
-            // TODO - Obtain starting point from TileMap (using Objects above)
-            Vector2 spawn = new Vector2(100f, 100f);
-
-            Sprite progressFill = new Sprite(Content.Load<Texture2D>("GUI/progressbar_fill"));
-            Sprite progressBorder = new Sprite(Content.Load<Texture2D>("GUI/progressbar_border"));
-
-            ProgressBar fixProgress = new ProgressBar(progressFill, spawn, new Vector2(1f, 1f), progressBorder);
-
-            player = new Player(Content.Load<SpriteSheet>("player.sf", new JsonContentLoader()), spawn, _camera, fixProgress);
-            _collisionComponent.Insert(player);
-
+            GenerateTileMap();
+            GeneratePlayer();
             GenerateHud();
             GenerateShipObjects();
 
@@ -100,20 +64,11 @@ namespace SpaceEngineer
             {
                 _collisionComponent.Insert(entity);
             }
-
         }
 
-        private void Button_OnClick(object sender, EventArgs e)
+        public void Update(GameTime gameTime)
         {
-            Console.WriteLine("Clicked inventory button!!");
-        }
-
-        protected override void Update(GameTime gameTime)
-        {
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Exit();
-
-            player.Update(gameTime);
+            _player.Update(gameTime);
             // Updates all gmae objects on the screen
             foreach (ShipComponent entity in _entities)
             {
@@ -125,43 +80,45 @@ namespace SpaceEngineer
             _collisionComponent.Update(gameTime);
             playerInventory.Update(gameTime);
             toolboxInventory.Update(gameTime);
-
-            base.Update(gameTime);
         }
 
-        protected override void Draw(GameTime gameTime)
+        public void Draw(SpriteBatch spriteBatch)
         {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
-
             Matrix transform = _camera.GetViewMatrix();
 
             _tiledMapRenderer.Draw(_tiledMap.GetLayer("Space"), transform);
             _tiledMapRenderer.Draw(_tiledMap.GetLayer("ShipFloor"), transform);
             _tiledMapRenderer.Draw(_tiledMap.GetLayer("Collidable"), transform);
 
-            _spriteBatch.Begin(transformMatrix: transform, samplerState: SamplerState.PointClamp );
+            spriteBatch.Begin(transformMatrix: transform, samplerState: SamplerState.PointClamp);
             // Draws all game objects to screen
             foreach (ShipComponent entity in _entities)
-                entity.Draw(_spriteBatch);
-            player.Draw(_spriteBatch);
+                entity.Draw(spriteBatch);
+            _player.Draw(spriteBatch);
 
-            _spriteBatch.End();
+            spriteBatch.End();
 
             _tiledMapRenderer.Draw(_tiledMap.GetLayer("UpperLayer"), transform);
 
             // HUD Section
-            _spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-            playerInventory.Draw(_spriteBatch);
-            toolboxInventory.Draw(_spriteBatch);
-            _spriteBatch.End();
-
-            base.Draw(gameTime);
+            spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+            playerInventory.Draw(spriteBatch);
+            toolboxInventory.Draw(spriteBatch);
+            spriteBatch.End();
         }
 
-        // Helper methods
+        #region HelperMethods
 
-        private void GenerateTiledCollisions()
+        private void GenerateTileMap()
         {
+            _tiledMap = _game.Content.Load<TiledMap>("Test");
+            _tiledMapRenderer = new TiledMapRenderer(_game.GraphicsDevice, _tiledMap);
+
+            MapWidth = _tiledMap.WidthInPixels;
+            MapHeight = _tiledMap.HeightInPixels;
+
+            _collisionComponent = new CollisionComponent(new RectangleF(0, 0, MapWidth, MapHeight));
+
             TiledMapTileLayer collidables = _tiledMap.GetLayer<TiledMapTileLayer>("Collidable");
 
             if (collidables != null)
@@ -180,10 +137,23 @@ namespace SpaceEngineer
 
                     Wall w = new Wall(pos, size);
                     _collisionComponent.Insert(w);
-                    // _entities.Add(w);
-
                 }
             }
+        }
+
+        private void GeneratePlayer()
+        {
+            // Hard-coded player starting position
+            // TODO - Obtain starting point from TileMap
+            Vector2 spawn = new Vector2(100f, 100f);
+
+            Sprite progressFill = new Sprite(_game.Content.Load<Texture2D>("GUI/progressbar_fill"));
+            Sprite progressBorder = new Sprite(_game.Content.Load<Texture2D>("GUI/progressbar_border"));
+
+            ProgressBar fixProgress = new ProgressBar(progressFill, spawn, new Vector2(1f, 1f), progressBorder);
+
+            _player = new Player(_game.Content.Load<SpriteSheet>("player.sf", new JsonContentLoader()), spawn, _camera, fixProgress);
+            _collisionComponent.Insert(_player);
         }
 
         private void GenerateShipObjects()
@@ -197,7 +167,7 @@ namespace SpaceEngineer
                 string assetName;
                 if (!obj.Properties.TryGetValue("sprite", out assetName)) continue;
 
-                Sprite sprite = new Sprite(Content.Load<Texture2D>(assetName));
+                Sprite sprite = new Sprite(_game.Content.Load<Texture2D>(assetName));
                 Vector2 pos = Vector2.Zero;
                 pos.X = obj.Position.X + sprite.Origin.X;
                 pos.Y = obj.Position.Y + sprite.Origin.Y;
@@ -218,11 +188,14 @@ namespace SpaceEngineer
             }
         }
 
+        /// <summary>
+        /// Generates the player inventory and HUD logic
+        /// </summary>
         private void GenerateHud()
         {
 
             Vector2 guiScale = new Vector2(_cameraScale, _cameraScale);
-            Sprite btnSprite = new Sprite(Content.Load<Texture2D>("GUI/inventory_slot"));
+            Sprite btnSprite = new Sprite(_game.Content.Load<Texture2D>("GUI/inventory_slot"));
 
             Vector2 inventoryPos = new Vector2(900f, 100f);
             Inventory pInventory = new Inventory();
@@ -231,19 +204,19 @@ namespace SpaceEngineer
             Inventory tInventory = new Inventory();
             tInventory.slots = 4;
 
-            Sprite drillSprite = new Sprite(Content.Load<Texture2D>("Items/drill"));
+            Sprite drillSprite = new Sprite(_game.Content.Load<Texture2D>("Items/drill"));
             Item drill = new Item(drillSprite, ItemType.Drill);
             tInventory.AddItem(drill);
 
-            Sprite filterSprite = new Sprite(Content.Load<Texture2D>("Items/O2Filter"));
+            Sprite filterSprite = new Sprite(_game.Content.Load<Texture2D>("Items/O2Filter"));
             Item filter = new Item(filterSprite, ItemType.O2Filter);
             tInventory.AddItem(filter);
 
-            Sprite swSprite = new Sprite(Content.Load<Texture2D>("Items/screwdriver"));
+            Sprite swSprite = new Sprite(_game.Content.Load<Texture2D>("Items/screwdriver"));
             Item sw = new Item(swSprite, ItemType.Screwdriver);
             tInventory.AddItem(sw);
 
-            Sprite wrenchSprite = new Sprite(Content.Load<Texture2D>("Items/wrench"));
+            Sprite wrenchSprite = new Sprite(_game.Content.Load<Texture2D>("Items/wrench"));
             Item wrench = new Item(wrenchSprite, ItemType.Wrench);
             tInventory.AddItem(wrench);
             tInventory.SetDepositInventory(pInventory);
@@ -252,20 +225,28 @@ namespace SpaceEngineer
             playerInventory = new InventoryHUD(inventoryPos, btnSprite, guiScale, pInventory);
             toolboxInventory = new InventoryHUD(toolboxInventoryPos, btnSprite, guiScale, tInventory);
 
-            player.SetInventory(pInventory);
+            _player.SetInventory(pInventory);
         }
 
+        /// <summary>
+        /// Updates each ship component and checks if player is close enough to interact with it
+        /// </summary>
+        /// <param name="component">Ship Object</param>
+        /// <param name="gameTime">GameTime variable</param>
         private void UpdateShipComponent(ShipComponent component, GameTime gameTime)
         {
             component.Update(gameTime);
 
             Vector2 compPos = component.GetPosition();
-            float distance = Vector2.Distance(compPos, player.GetPosition());
+            float distance = Vector2.Distance(compPos, _player.GetPosition());
 
-            if (distance <= player.interactRad)
+            if (distance <= _player.interactRad)
             {
-                player.SetFocus(component);
+                _player.SetFocus(component);
             }
         }
+
+        #endregion
+
     }
 }

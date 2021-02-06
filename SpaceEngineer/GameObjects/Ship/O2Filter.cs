@@ -10,19 +10,11 @@ namespace SpaceEngineer.GameObjects.Ship
         {
         }
 
-        public override void Update(GameTime gameTime)
+        public override void ActivateEvent()
         {
-            base.Update(gameTime);
-        }
+            base.ActivateEvent();
 
-        public override void Interact()
-        {
-            base.Interact();
-        }
 
-        public override void Cancel()
-        {
-            base.Cancel();
         }
     }
 }
