@@ -26,6 +26,23 @@
 /processorParam:TextureFormat=Color
 /build:GUI/inventory_slot.png
 
+#begin GUI/Pixellari.fnt
+/importer:BitmapFontImporter
+/processor:BitmapFontProcessor
+/build:GUI/Pixellari.fnt
+
+#begin GUI/Pixellari_0.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:GUI/Pixellari_0.png
+
 #begin GUI/progressbar_border.png
 /importer:TextureImporter
 /processor:TextureProcessor

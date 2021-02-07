@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
+using MonoGame.Extended.BitmapFonts;
 using MonoGame.Extended.Collisions;
 using MonoGame.Extended.Content;
 using MonoGame.Extended.Serialization;
@@ -14,6 +15,7 @@ using SpaceEngineer.GUI;
 using SpaceEngineer.Hud;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace SpaceEngineer
@@ -26,7 +28,8 @@ namespace SpaceEngineer
         #region PrivateVariables
         private readonly MainGame _game;
         // List of GameObjects; Also used by CollisionComponent for Collision detection
-        private readonly List<ShipComponent> _entities = new List<ShipComponent>();
+        private readonly List<IEntity> _entities = new List<IEntity>();
+        private readonly List<BreakableComponent> _brokenComponents = new List<BreakableComponent>();
         private Player _player;
         private CollisionComponent _collisionComponent;
 
@@ -43,7 +46,17 @@ namespace SpaceEngineer
         // Camera; Moved with Player
         OrthographicCamera _camera;
         float _cameraScale;
+
+        private int _maxTimer = 10;
+        private int _minTimer = 5;
+        private float _currentTimer = 0f;
+        private int _nextEvent = 0;
+
+        private StringBuilder _brokenList = new StringBuilder();
+
         #endregion
+
+        BitmapFont _font;
 
         public World(MainGame game, BoxingViewportAdapter viewport)
         {
@@ -60,19 +73,31 @@ namespace SpaceEngineer
             GenerateHud();
             GenerateShipObjects();
 
+            _font = _game.Content.Load<BitmapFont>("GUI/Pixellari");
+
             foreach (IEntity entity in _entities)
             {
                 _collisionComponent.Insert(entity);
             }
+
+            Random rand = new Random();
+
+            _nextEvent = rand.Next(_minTimer, _maxTimer);
+            _brokenList = new StringBuilder().AppendLine("Active Components: ");
         }
 
         public void Update(GameTime gameTime)
         {
             _player.Update(gameTime);
-            // Updates all gmae objects on the screen
-            foreach (ShipComponent entity in _entities)
+            // Updates all ShipComponents on the screen
+            foreach (IEntity entity in _entities)
             {
-                UpdateShipComponent(entity, gameTime);
+                if (entity is ShipComponent b)
+                {
+                    UpdateShipComponent(b, gameTime);
+                    continue;
+                }
+                entity.Update(gameTime);
             }
             // Update for TileMap
             _tiledMapRenderer.Update(gameTime);
@@ -80,6 +105,11 @@ namespace SpaceEngineer
             _collisionComponent.Update(gameTime);
             playerInventory.Update(gameTime);
             toolboxInventory.Update(gameTime);
+
+            UpdateBreakEvent((float)gameTime.ElapsedGameTime.TotalSeconds);
+            UpdateBrokenList();
+
+            Console.WriteLine($"CurrentTimer = {_currentTimer}; Next Event = {_nextEvent}");
         }
 
         public void Draw(SpriteBatch spriteBatch)
@@ -92,7 +122,7 @@ namespace SpaceEngineer
 
             spriteBatch.Begin(transformMatrix: transform, samplerState: SamplerState.PointClamp);
             // Draws all game objects to screen
-            foreach (ShipComponent entity in _entities)
+            foreach (IEntity entity in _entities)
                 entity.Draw(spriteBatch);
             _player.Draw(spriteBatch);
 
@@ -104,10 +134,11 @@ namespace SpaceEngineer
             spriteBatch.Begin(samplerState: SamplerState.PointClamp);
             playerInventory.Draw(spriteBatch);
             toolboxInventory.Draw(spriteBatch);
+            spriteBatch.DrawString(_font, _brokenList, new Vector2(50f, 50f), Color.White);
             spriteBatch.End();
         }
 
-        #region HelperMethods
+        #region LoadContent Method
 
         private void GenerateTileMap()
         {
@@ -176,7 +207,7 @@ namespace SpaceEngineer
                 switch (obj.Name)
                 {
                     case "O2Component":
-                        component = new BreakableComponent(sprite, pos, ItemType.O2Filter);
+                        component = new BreakableComponent(sprite, pos, ItemType.O2Filter, "O2 Filter");
                         break;
                     case "Toolbox":
                         component = new Toolbox(sprite, pos, playerInventory, toolboxInventory);
@@ -228,6 +259,10 @@ namespace SpaceEngineer
             _player.SetInventory(pInventory);
         }
 
+        #endregion
+
+        #region Gameplay Logic
+
         /// <summary>
         /// Updates each ship component and checks if player is close enough to interact with it
         /// </summary>
@@ -246,7 +281,55 @@ namespace SpaceEngineer
             }
         }
 
-        #endregion
+        private void UpdateBreakEvent(float deltaTime)
+        {
+            _currentTimer = Math.Clamp(_currentTimer + deltaTime, 0f, (float)_nextEvent);
+            if (_currentTimer >= _nextEvent)
+            {
+                List<BreakableComponent> list = _entities.OfType<BreakableComponent>().ToList();
 
+                Random rand = new Random();
+                int i = rand.Next(0, list.Count - 1);
+
+                // If component is already broken, we do not need to activate again nor do we need to select another object (We can let our player be lucky every now and then :) ).
+                if (!list[i].IsBroken())
+                    list[i].ActivateEvent();
+
+                _currentTimer = 0f;
+                _nextEvent = rand.Next(_minTimer, _maxTimer);
+                _brokenComponents.Add(list[i]);
+                CreateBrokenList();
+            }
+        }
+
+        private void UpdateBrokenList()
+        {
+            bool hasChanged = false; // Has brokenList changed IE. Has there been any components that were fixed by the player
+            foreach (BreakableComponent c in _brokenComponents)
+            {
+                if (!c.IsBroken())
+                {
+                    hasChanged = true;
+                }
+            }
+            if (hasChanged)
+            {
+                _brokenComponents.RemoveAll(b => !b.IsBroken());
+                CreateBrokenList();
+            }
+        }
+
+        private void CreateBrokenList()
+        {
+            _brokenList = new StringBuilder();
+            _brokenList.AppendLine("Active Components:");
+            foreach (BreakableComponent c in _entities.OfType<BreakableComponent>())
+            {
+                if (!c.IsBroken()) continue;
+                _brokenList.AppendLine(c.name);
+            }
+        }
+
+        #endregion
     }
 }

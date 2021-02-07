@@ -17,6 +17,10 @@ namespace SpaceEngineer.GameObjects.Ship
         private float _currentFixTime = 0f;
         private float _fixRate = 10f;
         private ItemType _requiredItem;
+        public string name { get; }
+
+        public delegate void OnComponentActivatedLogic();
+        public OnComponentActivatedLogic OnComponentActivated;
 
         public override void Cancel()
         {
@@ -24,10 +28,11 @@ namespace SpaceEngineer.GameObjects.Ship
             _isFixing = false;
         }
 
-        public BreakableComponent(Sprite sprite, Vector2 position, ItemType requiredItem) : base(sprite, position)
+        public BreakableComponent(Sprite sprite, Vector2 position, ItemType requiredItem, string name = "DefaultComponent") : base(sprite, position)
         {
             _requiredItem = requiredItem;
-            _isBroken = true;
+            // _isBroken = true;
+            this.name = name;
         }
 
         public override void Interact()
