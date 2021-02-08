@@ -47,7 +47,7 @@
     <property name="sprite" value="Ship/toolbox"/>
    </properties>
   </object>
-  <object id="2" name="PlayerSpawn" type="Coordinates" x="239.333" y="204.667">
+  <object id="2" name="PlayerSpawn" type="PlayerSpawn" x="264.083" y="203.917">
    <point/>
   </object>
  </objectgroup>
