@@ -25,7 +25,7 @@ namespace SpaceEngineer.GUI
             _sprite = sprite;
             _position = position;
             _scale = scale;
-            _maxWidth = _sprite.TextureRegion.Width * _scale.X;
+            _maxWidth = _sprite.TextureRegion.Width; // * _scale.X;
             _borderSprite = borderSprite;
             Transform2 transform = new Transform2(Vector2.Zero);
             transform.Scale = _scale;
@@ -37,8 +37,8 @@ namespace SpaceEngineer.GUI
         public void Draw(SpriteBatch spriteBatch)
         {
             if (!_active) return;
-            spriteBatch.Draw(_sprite.TextureRegion.Texture, _position, _progressRect.ToRectangle(), Color.White); ;
-            spriteBatch.Draw(_borderSprite.TextureRegion.Texture, _position, Color.White);
+            spriteBatch.Draw(_sprite.TextureRegion.Texture, _position, _progressRect.ToRectangle(), Color.White, 0f, _sprite.Origin, _scale, SpriteEffects.None, 0);
+            spriteBatch.Draw(_borderSprite, _position, 0f, _scale);
         }
 
         public Vector2 GetPosition()

@@ -13,6 +13,7 @@ using SpaceEngineer.GameObjects;
 using SpaceEngineer.GameObjects.Ship;
 using SpaceEngineer.GUI;
 using SpaceEngineer.Hud;
+using SpaceEngineer.HUD;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -42,6 +43,7 @@ namespace SpaceEngineer
 
         InventoryHUD playerInventory;
         InventoryHUD toolboxInventory;
+        HealthBar _healthBar;
 
         // Camera; Moved with Player
         OrthographicCamera _camera;
@@ -105,11 +107,10 @@ namespace SpaceEngineer
             _collisionComponent.Update(gameTime);
             playerInventory.Update(gameTime);
             toolboxInventory.Update(gameTime);
+            _healthBar.UpdateHp(_player.GetHealthPercentage());
 
             UpdateBreakEvent((float)gameTime.ElapsedGameTime.TotalSeconds);
             UpdateBrokenList();
-
-            Console.WriteLine($"CurrentTimer = {_currentTimer}; Next Event = {_nextEvent}");
         }
 
         public void Draw(SpriteBatch spriteBatch)
@@ -134,7 +135,8 @@ namespace SpaceEngineer
             spriteBatch.Begin(samplerState: SamplerState.PointClamp);
             playerInventory.Draw(spriteBatch);
             toolboxInventory.Draw(spriteBatch);
-            spriteBatch.DrawString(_font, _brokenList, new Vector2(50f, 50f), Color.White);
+            _healthBar.Draw(spriteBatch);
+            spriteBatch.DrawString(_font, _brokenList, new Vector2(50f, 100f), Color.White);
             spriteBatch.End();
         }
 
@@ -207,7 +209,15 @@ namespace SpaceEngineer
                 switch (obj.Name)
                 {
                     case "O2Component":
-                        component = new BreakableComponent(sprite, pos, ItemType.O2Filter, "O2 Filter");
+                        BreakableComponent o = new BreakableComponent(sprite, pos, ItemType.O2Filter, "O2 Filter");
+                        o.OnComponentActivated += TurnOffO2;
+                        o.OnComponentFixed += TurnOnO2;
+                        component = o;
+                        break;
+                    case "Medbay":
+                        Medbay m = new Medbay(sprite, pos, ItemType.Screwdriver, "Medbay");
+                        m.OnComponentInteracted += HealPlayer;
+                        component = m;
                         break;
                     case "Toolbox":
                         component = new Toolbox(sprite, pos, playerInventory, toolboxInventory);
@@ -224,6 +234,7 @@ namespace SpaceEngineer
         /// </summary>
         private void GenerateHud()
         {
+            // Player and Toolbox Inventories
 
             Vector2 guiScale = new Vector2(_cameraScale, _cameraScale);
             Sprite btnSprite = new Sprite(_game.Content.Load<Texture2D>("GUI/inventory_slot"));
@@ -257,6 +268,12 @@ namespace SpaceEngineer
             toolboxInventory = new InventoryHUD(toolboxInventoryPos, btnSprite, guiScale, tInventory);
 
             _player.SetInventory(pInventory);
+
+            // Player health bar
+
+            Sprite hpBorder = new Sprite(_game.Content.Load<Texture2D>("GUI/healthbar_border"));
+            Sprite hpFill = new Sprite(_game.Content.Load<Texture2D>("GUI/healthbar_fill"));
+            _healthBar = new HealthBar(hpFill, hpBorder, new Vector2(180f, 50f), guiScale * 2);
         }
 
         #endregion
@@ -289,7 +306,7 @@ namespace SpaceEngineer
                 List<BreakableComponent> list = _entities.OfType<BreakableComponent>().ToList();
 
                 Random rand = new Random();
-                int i = rand.Next(0, list.Count - 1);
+                int i = rand.Next(0, list.Count);
 
                 // If component is already broken, we do not need to activate again nor do we need to select another object (We can let our player be lucky every now and then :) ).
                 if (!list[i].IsBroken())
@@ -328,6 +345,21 @@ namespace SpaceEngineer
                 if (!c.IsBroken()) continue;
                 _brokenList.AppendLine(c.name);
             }
+        }
+
+        private void TurnOffO2()
+        {
+            _player.ToggleO2(false);
+        }
+
+        private void TurnOnO2()
+        {
+            _player.ToggleO2(true);
+        }
+
+        private void HealPlayer()
+        {
+            _player.HealDamage();
         }
 
         #endregion

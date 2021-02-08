@@ -21,16 +21,26 @@ namespace SpaceEngineer.GameObjects
 
     public class Player : IEntity
     {
-        // Movement Variables
-
         private Vector2 _position;
         private Vector2 _movement;
         private Vector2 _velocity;
         private float _movementSpeed = 100f;
         private AnimatedSprite _sprite;
         private string _currentAnimation;
+        // Current direction the player sprite should be looking at
         private Direction _currentDir;
+
+        private float _maxHp = 20f;
+        private float _currentHp;
+
+        // Timer for next damage (in seconds)
+        private float _damageTimer = 5f;
+        private float _currentDamageTimer = 0f;
+
+        // Interact trigger radius
         public float interactRad = 30f;
+        // Player's interactable object if one exists within 'interactRad'
+        private ShipComponent _focus;
 
         // Camera
         OrthographicCamera _camera;
@@ -39,10 +49,11 @@ namespace SpaceEngineer.GameObjects
         private MouseState _previousState;
         private MouseState _currentState;
 
-        private ShipComponent _focus;
         private Inventory _inventory;
 
         private ProgressBar _fixProgress;
+        // True = O2 is working; False = O2 needs fixing
+        private bool _o2status = true;
 
         public IShapeF Bounds { get; }
 
@@ -63,13 +74,15 @@ namespace SpaceEngineer.GameObjects
             progressBarPos.Y -= _sprite.TextureRegion.Height;
             _fixProgress.SetPosition(progressBarPos);
             _fixProgress.SetActive(false);
+            _currentHp = _maxHp;
         }
 
         public void Update(GameTime gameTime)
         {
-            Move((float)gameTime.ElapsedGameTime.TotalSeconds);
+            float deltaSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            Move(deltaSeconds);
             Interact();
-            
+            UpdateDamage(deltaSeconds);
         }
 
         public void Draw(SpriteBatch spriteBatch)
@@ -108,7 +121,7 @@ namespace SpaceEngineer.GameObjects
             Vector2 progressBarPos = _fixProgress.GetPosition();
             progressBarPos = _position;
             progressBarPos.Y -= _sprite.TextureRegion.Height;
-            progressBarPos.X -= _sprite.TextureRegion.Width / 2; 
+            // progressBarPos.X -= _sprite.TextureRegion.Width; 
             _fixProgress.SetPosition(progressBarPos);
 
             if (_movement.X != 0f)
@@ -151,10 +164,12 @@ namespace SpaceEngineer.GameObjects
                 {
                     if (b != null)
                     {
-                        if (!b.IsBroken()) return;
-                        Item item = _inventory.items.Find(i => i.itemType == b.GetRequiredItem());
-                        if (item == null) return;
-                        _fixProgress.SetActive(true);
+                        if (b.IsBroken())
+                        {
+                            Item item = _inventory.items.Find(i => i.itemType == b.GetRequiredItem());
+                            if (item == null) return;
+                            _fixProgress.SetActive(true);
+                        }
                     }
                     _focus.Interact();
                 }
@@ -189,6 +204,43 @@ namespace SpaceEngineer.GameObjects
         public Vector2 GetPosition()
         {
             return _position;
+        }
+
+        /// <summary>
+        /// Toggles O2 status for the player between true and false
+        /// </summary>
+        /// <param name="toggle">True = O2 is fixed and working; False = O2 needs fixing and player will lose Health</param>
+        public void ToggleO2(bool toggle)
+        {
+            _o2status = toggle;
+        }
+
+        private void UpdateDamage(float deltaSeconds)
+        {
+            // If _o2status is true, then O2 filters are OK, therefore, we do not deduct health from the player
+            if (_o2status) return;
+
+            _currentDamageTimer = Math.Clamp(_currentDamageTimer + deltaSeconds, 0f, _damageTimer);
+            if (_currentDamageTimer >= _damageTimer)
+            {
+                _currentHp = Math.Clamp(_currentHp - 1, 0, _maxHp);
+                _currentDamageTimer = 0f;
+            }
+        }
+
+        public void HealDamage()
+        {
+            _currentHp = _maxHp;
+        }
+
+        /// <summary>
+        /// Get player health in percentage
+        /// </summary>
+        /// <returns>Returns _currentHp / _maxHp</returns>
+        public float GetHealthPercentage()
+        {
+            Console.WriteLine(_currentHp / _maxHp);
+            return _currentHp / _maxHp;
         }
     }
 }

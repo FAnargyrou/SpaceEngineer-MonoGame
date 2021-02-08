@@ -21,6 +21,8 @@ namespace SpaceEngineer.GameObjects.Ship
 
         public delegate void OnComponentActivatedLogic();
         public OnComponentActivatedLogic OnComponentActivated;
+        public delegate void OnComponentFixedLogic();
+        public OnComponentFixedLogic OnComponentFixed;
 
         public override void Cancel()
         {
@@ -31,7 +33,6 @@ namespace SpaceEngineer.GameObjects.Ship
         public BreakableComponent(Sprite sprite, Vector2 position, ItemType requiredItem, string name = "DefaultComponent") : base(sprite, position)
         {
             _requiredItem = requiredItem;
-            // _isBroken = true;
             this.name = name;
         }
 
@@ -51,6 +52,8 @@ namespace SpaceEngineer.GameObjects.Ship
                 {
                     _isBroken = false;
                     _isFixing = false;
+                    if (OnComponentFixed != null)
+                        OnComponentFixed.Invoke();
                 }
             }
         }
@@ -64,6 +67,8 @@ namespace SpaceEngineer.GameObjects.Ship
         {
             _isBroken = true;
             _currentFixTime = 0f;
+            if (OnComponentActivated != null)
+                OnComponentActivated.Invoke();
         }
 
         /// <summary>
@@ -81,7 +86,6 @@ namespace SpaceEngineer.GameObjects.Ship
         /// <returns>return value between 0f and 1f</returns>
         public float GetFixProgress()
         {
-            Console.WriteLine(_currentFixTime / _fixTime);
             return _currentFixTime / _fixTime;
         }
     }
