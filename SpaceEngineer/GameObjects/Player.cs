@@ -237,7 +237,6 @@ namespace SpaceEngineer.GameObjects
         /// <returns>Returns _currentHp / _maxHp</returns>
         public float GetHealthPercentage()
         {
-            Console.WriteLine(_currentHp / _maxHp);
             return _currentHp / _maxHp;
         }
     }

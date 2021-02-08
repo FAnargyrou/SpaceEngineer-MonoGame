@@ -13,7 +13,7 @@ namespace SpaceEngineer.GameObjects.Ship
         private float _currentFixTime = 0f;
         private float _fixRate = 10f;
         private ItemType _requiredItem;
-        public string name { get; }
+        public string name { get; protected set; }
 
         public delegate void OnComponentActivatedLogic();
         public OnComponentActivatedLogic OnComponentActivated;
@@ -25,8 +25,14 @@ namespace SpaceEngineer.GameObjects.Ship
             _currentFixTime = 0f;
             _isFixing = false;
         }
-
-        public BreakableComponent(Sprite sprite, Vector2 position, ItemType requiredItem, string name = "DefaultComponent") : base(sprite, position)
+        /// <summary>
+        /// Constructor for BreakableComponent class
+        /// </summary>
+        /// <param name="sprite">Component's base sprite</param>
+        /// <param name="position">Component's starting position</param>
+        /// <param name="requiredItem">Component's required Item; This can also be set through SetRequiredItem function</param>
+        /// <param name="name">Component's name as shown to the player; Can also be set through SetName</param>
+        public BreakableComponent(Sprite sprite, Vector2 position, ItemType requiredItem = ItemType.Screwdriver, string name = "DefaultComponent") : base(sprite, position)
         {
             _requiredItem = requiredItem;
             this.name = name;
@@ -83,6 +89,16 @@ namespace SpaceEngineer.GameObjects.Ship
         public float GetFixProgress()
         {
             return _currentFixTime / _fixTime;
+        }
+
+        public void SetName(string newName)
+        {
+            name = newName;
+        }
+
+        public void SetRequiredItem(ItemType type)
+        {
+            _requiredItem = type;
         }
     }
 }

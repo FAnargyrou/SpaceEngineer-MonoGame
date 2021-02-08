@@ -96,5 +96,10 @@ namespace SpaceEngineer.Hud
                 _slots[i].button.SetActive(toggle);
             }
         }
+
+        public Inventory GetInventory()
+        {
+            return _inventory;
+        }
     }
 }

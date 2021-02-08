@@ -41,8 +41,8 @@ namespace SpaceEngineer
         TiledMap _tiledMap;
         TiledMapRenderer _tiledMapRenderer;
 
-        InventoryHUD playerInventory;
-        InventoryHUD toolboxInventory;
+        InventoryHUD playerInventoryHud;
+        InventoryHUD toolboxInventoryHud;
         HealthBar _healthBar;
 
         // Camera; Moved with Player
@@ -55,6 +55,8 @@ namespace SpaceEngineer
         private int _nextEvent = 0;
 
         private StringBuilder _brokenList = new StringBuilder();
+
+        private bool _shieldStatus = true;
 
         #endregion
 
@@ -71,8 +73,8 @@ namespace SpaceEngineer
         public void LoadContent()
         {
             GenerateTileMap();
-            GeneratePlayer();
             GenerateHud();
+            GeneratePlayer();
             GenerateShipObjects();
 
             _font = _game.Content.Load<BitmapFont>("GUI/Pixellari");
@@ -85,7 +87,7 @@ namespace SpaceEngineer
             Random rand = new Random();
 
             _nextEvent = rand.Next(_minTimer, _maxTimer);
-            _brokenList = new StringBuilder().AppendLine("Active Components: ");
+            _brokenList = new StringBuilder().AppendLine("Broken Components:");
         }
 
         public void Update(GameTime gameTime)
@@ -105,8 +107,8 @@ namespace SpaceEngineer
             _tiledMapRenderer.Update(gameTime);
             // Update used for Collision Detection
             _collisionComponent.Update(gameTime);
-            playerInventory.Update(gameTime);
-            toolboxInventory.Update(gameTime);
+            playerInventoryHud.Update(gameTime);
+            toolboxInventoryHud.Update(gameTime);
             _healthBar.UpdateHp(_player.GetHealthPercentage());
 
             UpdateBreakEvent((float)gameTime.ElapsedGameTime.TotalSeconds);
@@ -133,8 +135,8 @@ namespace SpaceEngineer
 
             // HUD Section
             spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-            playerInventory.Draw(spriteBatch);
-            toolboxInventory.Draw(spriteBatch);
+            playerInventoryHud.Draw(spriteBatch);
+            toolboxInventoryHud.Draw(spriteBatch);
             _healthBar.Draw(spriteBatch);
             spriteBatch.DrawString(_font, _brokenList, new Vector2(50f, 100f), Color.White);
             spriteBatch.End();
@@ -176,22 +178,45 @@ namespace SpaceEngineer
 
         private void GeneratePlayer()
         {
+            TiledMapObject[] objects = _tiledMap.GetLayer<TiledMapObjectLayer>("Player").Objects;
             // Hard-coded player starting position
             // TODO - Obtain starting point from TileMap
-            Vector2 spawn = new Vector2(100f, 100f);
+            Vector2 playerSpawn = Vector2.Zero;
+
+            foreach (TiledMapObject obj in objects)
+            {
+                Vector2 spawn = new Vector2(obj.Position.X, obj.Position.Y);
+                switch (obj.Type)
+                {
+                    case "PlayerSpawn":
+                        playerSpawn = spawn;
+                        break;
+                    case "Toolbox":
+                        string assetName;
+                        if (!obj.Properties.TryGetValue("sprite", out assetName)) continue;
+                        Sprite sprite = new Sprite(_game.Content.Load<Texture2D>(assetName));
+                        spawn.X += sprite.Origin.X;
+                        spawn.Y += sprite.Origin.Y;
+
+                        Toolbox t = new Toolbox(sprite, spawn, playerInventoryHud, toolboxInventoryHud);
+                        _entities.Add(t);
+                        break;
+                }
+            }
 
             Sprite progressFill = new Sprite(_game.Content.Load<Texture2D>("GUI/progressbar_fill"));
             Sprite progressBorder = new Sprite(_game.Content.Load<Texture2D>("GUI/progressbar_border"));
 
-            ProgressBar fixProgress = new ProgressBar(progressFill, spawn, new Vector2(1f, 1f), progressBorder);
+            ProgressBar fixProgress = new ProgressBar(progressFill, playerSpawn, new Vector2(1f, 1f), progressBorder);
 
-            _player = new Player(_game.Content.Load<SpriteSheet>("player.sf", new JsonContentLoader()), spawn, _camera, fixProgress);
+            _player = new Player(_game.Content.Load<SpriteSheet>("player.sf", new JsonContentLoader()), playerSpawn, _camera, fixProgress);
+            _player.SetInventory(playerInventoryHud.GetInventory());
             _collisionComponent.Insert(_player);
         }
 
         private void GenerateShipObjects()
         {
-            TiledMapObject[] objects = _tiledMap.GetLayer<TiledMapObjectLayer>("Objects").Objects;
+            TiledMapObject[] objects = _tiledMap.GetLayer<TiledMapObjectLayer>("Breakables").Objects;
 
             // Loops through Objects created in Tiled
             // TODO - Refactor into reusable code for other objects
@@ -199,32 +224,36 @@ namespace SpaceEngineer
             {
                 string assetName;
                 if (!obj.Properties.TryGetValue("sprite", out assetName)) continue;
+                string type = string.Empty;
+                if (!obj.Properties.TryGetValue("item", out type))
+                    type = "screwdriver";
+
+                ItemType item = (ItemType) Enum.Parse(typeof(ItemType), type, true);
 
                 Sprite sprite = new Sprite(_game.Content.Load<Texture2D>(assetName));
                 Vector2 pos = Vector2.Zero;
                 pos.X = obj.Position.X + sprite.Origin.X;
                 pos.Y = obj.Position.Y + sprite.Origin.Y;
 
-                ShipComponent component = null;
-                switch (obj.Name)
+                BreakableComponent b = new BreakableComponent(sprite, pos, item, obj.Name);
+                switch (obj.Type)
                 {
                     case "O2Component":
-                        BreakableComponent o = new BreakableComponent(sprite, pos, ItemType.O2Filter, "O2 Filter");
-                        o.OnComponentActivated += TurnOffO2;
-                        o.OnComponentFixed += TurnOnO2;
-                        component = o;
+                        b.OnComponentActivated += TurnOffO2;
+                        b.OnComponentFixed += TurnOnO2;
                         break;
                     case "Medbay":
                         Medbay m = new Medbay(sprite, pos, ItemType.Screwdriver, "Medbay");
                         m.OnComponentInteracted += HealPlayer;
-                        component = m;
+                        b = m;
                         break;
-                    case "Toolbox":
-                        component = new Toolbox(sprite, pos, playerInventory, toolboxInventory);
+                    case "Shield":
+                        b.OnComponentActivated += TurnOffShield;
+                        b.OnComponentFixed += TurnOnShield;
                         break;
                 }
-                if (component != null)
-                    _entities.Add(component);
+                if (b != null)
+                    _entities.Add(b);
 
             }
         }
@@ -251,7 +280,7 @@ namespace SpaceEngineer
             tInventory.AddItem(drill);
 
             Sprite filterSprite = new Sprite(_game.Content.Load<Texture2D>("Items/O2Filter"));
-            Item filter = new Item(filterSprite, ItemType.O2Filter);
+            Item filter = new Item(filterSprite, ItemType.Filter);
             tInventory.AddItem(filter);
 
             Sprite swSprite = new Sprite(_game.Content.Load<Texture2D>("Items/screwdriver"));
@@ -264,10 +293,9 @@ namespace SpaceEngineer
             tInventory.SetDepositInventory(pInventory);
             pInventory.SetDepositInventory(tInventory);
 
-            playerInventory = new InventoryHUD(inventoryPos, btnSprite, guiScale, pInventory);
-            toolboxInventory = new InventoryHUD(toolboxInventoryPos, btnSprite, guiScale, tInventory);
+            playerInventoryHud = new InventoryHUD(inventoryPos, btnSprite, guiScale, pInventory);
+            toolboxInventoryHud = new InventoryHUD(toolboxInventoryPos, btnSprite, guiScale, tInventory);
 
-            _player.SetInventory(pInventory);
 
             // Player health bar
 
@@ -305,16 +333,26 @@ namespace SpaceEngineer
             {
                 List<BreakableComponent> list = _entities.OfType<BreakableComponent>().ToList();
 
-                Random rand = new Random();
-                int i = rand.Next(0, list.Count);
+                // Number of components that will be broken in this event phase
+                int num = 1;
 
-                // If component is already broken, we do not need to activate again nor do we need to select another object (We can let our player be lucky every now and then :) ).
-                if (!list[i].IsBroken())
-                    list[i].ActivateEvent();
+                if (!_shieldStatus)
+                    num++;
 
-                _currentTimer = 0f;
-                _nextEvent = rand.Next(_minTimer, _maxTimer);
-                _brokenComponents.Add(list[i]);
+                for (int n = 1; n <= num; ++n)
+                {
+
+                    Random rand = new Random();
+                    int i = rand.Next(0, list.Count);
+
+                    // If component is already broken, we do not need to activate again nor do we need to select another object (We can let our player be lucky every now and then :) ).
+                    if (!list[i].IsBroken())
+                        list[i].ActivateEvent();
+
+                    _currentTimer = 0f;
+                    _nextEvent = rand.Next(_minTimer, _maxTimer);
+                    _brokenComponents.Add(list[i]);
+                }
                 CreateBrokenList();
             }
         }
@@ -339,7 +377,7 @@ namespace SpaceEngineer
         private void CreateBrokenList()
         {
             _brokenList = new StringBuilder();
-            _brokenList.AppendLine("Active Components:");
+            _brokenList.AppendLine("Broken Components:");
             foreach (BreakableComponent c in _entities.OfType<BreakableComponent>())
             {
                 if (!c.IsBroken()) continue;
@@ -360,6 +398,16 @@ namespace SpaceEngineer
         private void HealPlayer()
         {
             _player.HealDamage();
+        }
+
+        private void TurnOffShield()
+        {
+            _shieldStatus = false;
+        }
+
+        private void TurnOnShield()
+        {
+            _shieldStatus = true;
         }
 
         #endregion

@@ -6,7 +6,7 @@ namespace SpaceEngineer.Hud
     {
         Screwdriver,
         Wrench,
-        O2Filter,
+        Filter,
         Drill
     }
 
