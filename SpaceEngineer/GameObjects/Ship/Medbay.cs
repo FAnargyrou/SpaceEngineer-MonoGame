@@ -1,9 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using MonoGame.Extended.Sprites;
 using SpaceEngineer.Hud;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace SpaceEngineer.GameObjects.Ship
 {

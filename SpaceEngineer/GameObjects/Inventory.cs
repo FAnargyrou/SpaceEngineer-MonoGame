@@ -1,12 +1,5 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using MonoGame.Extended;
-using MonoGame.Extended.Sprites;
-using SpaceEngineer.GUI;
-using SpaceEngineer.Hud;
-using System;
+﻿using SpaceEngineer.Hud;
 using System.Collections.Generic;
-using System.Text;
 
 namespace SpaceEngineer.GameObjects
 {

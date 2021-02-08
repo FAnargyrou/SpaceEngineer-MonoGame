@@ -1,7 +1,4 @@
 ﻿using MonoGame.Extended.Sprites;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace SpaceEngineer.Hud
 {

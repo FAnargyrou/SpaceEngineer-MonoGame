@@ -1,21 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using MonoGame.Extended.Serialization;
-using MonoGame.Extended.Content;
-using MonoGame.Extended.Sprites;
-using MonoGame.Extended;
 using MonoGame.Extended.ViewportAdapters;
-using MonoGame.Extended.Tiled;
-using MonoGame.Extended.Tiled.Renderers;
-using SpaceEngineer.GameObjects.Ship;
-using MonoGame.Extended.Collisions;
-using System;
-using SpaceEngineer.GameObjects;
-using SpaceEngineer.GUI;
-using SpaceEngineer.Hud;
 
 namespace SpaceEngineer
 {

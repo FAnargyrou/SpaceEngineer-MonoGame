@@ -3,8 +3,6 @@ using MonoGame.Extended.Sprites;
 using SpaceEngineer.GameObjects;
 using SpaceEngineer.GUI;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace SpaceEngineer.Hud
 {

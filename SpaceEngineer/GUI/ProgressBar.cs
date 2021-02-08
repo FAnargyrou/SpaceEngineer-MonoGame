@@ -25,7 +25,7 @@ namespace SpaceEngineer.GUI
             _sprite = sprite;
             _position = position;
             _scale = scale;
-            _maxWidth = _sprite.TextureRegion.Width; // * _scale.X;
+            _maxWidth = _sprite.TextureRegion.Width;
             _borderSprite = borderSprite;
             Transform2 transform = new Transform2(Vector2.Zero);
             transform.Scale = _scale;

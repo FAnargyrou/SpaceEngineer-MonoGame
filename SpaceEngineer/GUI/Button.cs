@@ -4,8 +4,6 @@ using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 using MonoGame.Extended.Sprites;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace SpaceEngineer.GUI
 {
