@@ -133,7 +133,6 @@ namespace SpaceEngineer.GameObjects
             Bounds.Position += _velocity;
             Vector2 progressBarPos = _position;
             progressBarPos.Y -= _sprite.TextureRegion.Height;
-            // progressBarPos.X -= _sprite.TextureRegion.Width; 
             _fixProgress.SetPosition(progressBarPos);
 
             if (_movement.X != 0f)
@@ -198,6 +197,7 @@ namespace SpaceEngineer.GameObjects
         {
             // If collision is found, prevent player and collision box from moving through
             _position -= collisionInfo.PenetrationVector;
+            _velocity = Vector2.Zero;
             Bounds.Position -= collisionInfo.PenetrationVector;
         }
 
