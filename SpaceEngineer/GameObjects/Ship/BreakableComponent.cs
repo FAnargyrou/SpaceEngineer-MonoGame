@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.Sprites;
 using SpaceEngineer.Hud;
 
@@ -7,6 +8,7 @@ namespace SpaceEngineer.GameObjects.Ship
 {
     public class BreakableComponent : ShipComponent
     {
+        private Sprite _brokenSprite;
         private bool _isFixing = false;
         private bool _isBroken = false;
         private float _fixTime = 50f;
@@ -32,9 +34,10 @@ namespace SpaceEngineer.GameObjects.Ship
         /// <param name="position">Component's starting position</param>
         /// <param name="requiredItem">Component's required Item; This can also be set through SetRequiredItem function</param>
         /// <param name="name">Component's name as shown to the player; Can also be set through SetName</param>
-        public BreakableComponent(Sprite sprite, Vector2 position, ItemType requiredItem = ItemType.Screwdriver, string name = "DefaultComponent") : base(sprite, position)
+        public BreakableComponent(Sprite sprite, Vector2 position, ItemType requiredItem = ItemType.Screwdriver, string name = "DefaultComponent", Sprite brokenSprite = null) : base(sprite, position)
         {
             _requiredItem = requiredItem;
+            _brokenSprite = brokenSprite;
             this.name = name;
         }
 
@@ -58,6 +61,15 @@ namespace SpaceEngineer.GameObjects.Ship
                         OnComponentFixed.Invoke();
                 }
             }
+        }
+
+        public override void Draw(SpriteBatch spriteBatch)
+        {
+            if (_brokenSprite == null || (_brokenSprite != null && !_isBroken))
+                base.Draw(spriteBatch);
+            else
+                spriteBatch.Draw(_brokenSprite, _position);
+
         }
 
         public ItemType GetRequiredItem()

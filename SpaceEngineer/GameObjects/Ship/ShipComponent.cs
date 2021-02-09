@@ -10,6 +10,7 @@ namespace SpaceEngineer.GameObjects.Ship
     {
         protected Sprite _sprite;
         protected Vector2 _position;
+        public virtual IShapeF Bounds { get; protected set; }
 
         public ShipComponent(Sprite sprite, Vector2 position)
         {
@@ -17,17 +18,10 @@ namespace SpaceEngineer.GameObjects.Ship
             _sprite = sprite;
 
 
-            // Translates position into Transform and then converts that to a RectangleF; 
-            // Used to get correct sprite bounds for collision detection
-            Transform2 transform = new Transform2(position);
-            RectangleF rectangle = _sprite.GetBoundingRectangle(transform);
-
-            Bounds = rectangle;
+            CreateBoundsShape();
         }
-
-        public virtual IShapeF Bounds { get; }
         public abstract void Cancel();
-        public void Draw(SpriteBatch spriteBatch)
+        public virtual void Draw(SpriteBatch spriteBatch)
         {
             spriteBatch.Draw(_sprite, _position);
             spriteBatch.DrawRectangle((RectangleF)Bounds, Color.Blue);
@@ -39,6 +33,17 @@ namespace SpaceEngineer.GameObjects.Ship
         {
             return _position;
         }
+
+        protected void CreateBoundsShape()
+        {
+            // Translates position into Transform and then converts that to a RectangleF; 
+            // Used to get correct sprite bounds for collision detection
+            Transform2 transform = new Transform2(_position);
+            RectangleF rectangle = _sprite.GetBoundingRectangle(transform);
+
+            Bounds = rectangle;
+        }
+
         public void OnCollision(CollisionEventArgs collisionInfo)
         {
             

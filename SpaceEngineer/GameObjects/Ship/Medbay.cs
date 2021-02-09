@@ -10,7 +10,8 @@ namespace SpaceEngineer.GameObjects.Ship
     /// </summary>
     public class Medbay : BreakableComponent
     {
-        public Medbay(Sprite sprite, Vector2 position, ItemType requiredItem, string name = "DefaultComponent") : base(sprite, position, requiredItem, name)
+        public Medbay(Sprite sprite, Vector2 position, ItemType requiredItem = ItemType.Screwdriver, string name = "DefaultComponent", Sprite brokenSprite = null) 
+            : base(sprite, position, requiredItem, name, brokenSprite)
         {
         }
 

@@ -219,23 +219,37 @@ namespace SpaceEngineer
             TiledMapObject[] objects = _tiledMap.GetLayer<TiledMapObjectLayer>("Breakables").Objects;
 
             // Loops through Objects created in Tiled
-            // TODO - Refactor into reusable code for other objects
             foreach (TiledMapObject obj in objects)
             {
+                // Default asset for this object. Defined by Custom Property called 'sprite' in Tiled
                 string assetName;
                 if (!obj.Properties.TryGetValue("sprite", out assetName)) continue;
+                // Load sprite with given asset path/name
+                Sprite sprite = new Sprite(_game.Content.Load<Texture2D>(assetName));
+
+                // Some sprites have a broken representation of them (ie Hull and O2 Vent).
+                // So we should attempt to load a broken representation of this asset if at specified in Tiled Custom Property 'broken_sprite'
+                // The BreakableComponent class should also cater for and skip 'null' BrokenSprites where applicable
+                Sprite brokenSprite = null;
+                if (obj.Properties.TryGetValue("broken_sprite", out string brokenAssetName))
+                {
+                    brokenSprite = new Sprite(_game.Content.Load<Texture2D>(brokenAssetName));
+                }
+
                 string type = string.Empty;
+                // If no valid Custom Property called 'item' is set for the required item, default it to screwdriver.
+                // This is to ensure that the gameplay can flow as expected.
                 if (!obj.Properties.TryGetValue("item", out type))
                     type = "screwdriver";
 
+                // Parse 'type' to Enum of 'ItemType'. Assumes a valid entry.
                 ItemType item = (ItemType) Enum.Parse(typeof(ItemType), type, true);
 
-                Sprite sprite = new Sprite(_game.Content.Load<Texture2D>(assetName));
                 Vector2 pos = Vector2.Zero;
                 pos.X = obj.Position.X + sprite.Origin.X;
                 pos.Y = obj.Position.Y + sprite.Origin.Y;
 
-                BreakableComponent b = new BreakableComponent(sprite, pos, item, obj.Name);
+                BreakableComponent b = new BreakableComponent(sprite, pos, item, obj.Name, brokenSprite);
                 switch (obj.Type)
                 {
                     case "O2Component":
@@ -243,13 +257,21 @@ namespace SpaceEngineer
                         b.OnComponentFixed += TurnOnO2;
                         break;
                     case "Medbay":
-                        Medbay m = new Medbay(sprite, pos, ItemType.Screwdriver, "Medbay");
+                        Medbay m = new Medbay(sprite, pos, item, obj.Name, brokenSprite);
                         m.OnComponentInteracted += HealPlayer;
                         b = m;
                         break;
                     case "Shield":
                         b.OnComponentActivated += TurnOffShield;
                         b.OnComponentFixed += TurnOnShield;
+                        break;
+                    case "GravityGenerator":
+                        b.OnComponentActivated += TurnOffGravity;
+                        b.OnComponentFixed += TurnOnGravity;
+                        break;
+                    case "Hull":
+                        Hull h = new Hull(sprite, pos, item, obj.Name, brokenSprite);
+                        b = h;
                         break;
                 }
                 if (b != null)
@@ -408,6 +430,16 @@ namespace SpaceEngineer
         private void TurnOnShield()
         {
             _shieldStatus = true;
+        }
+
+        private void TurnOffGravity()
+        {
+            _player.ToggleGravity(false);
+        }
+
+        private void TurnOnGravity()
+        {
+            _player.ToggleGravity(true);
         }
 
         #endregion

@@ -23,6 +23,7 @@ namespace SpaceEngineer.GameObjects
         private Vector2 _movement;
         private Vector2 _velocity;
         private float _movementSpeed = 100f;
+        private float _noGravityMovementSpeed = 3f;
         private AnimatedSprite _sprite;
         private string _currentAnimation;
         // Current direction the player sprite should be looking at
@@ -52,6 +53,7 @@ namespace SpaceEngineer.GameObjects
         private ProgressBar _fixProgress;
         // True = O2 is working; False = O2 needs fixing
         private bool _o2status = true;
+        private bool _gravityStatus = true;
 
         public IShapeF Bounds { get; }
 
@@ -94,8 +96,8 @@ namespace SpaceEngineer.GameObjects
         private void Move(float deltaSeconds)
         {
             KeyboardState kstate = Keyboard.GetState();
+
             _movement = new Vector2(0f, 0f);
-            _velocity = new Vector2(0f, 0f);
 
             if (kstate.IsKeyDown(Keys.W))
                 _movement.Y -= 1f;
@@ -108,16 +110,28 @@ namespace SpaceEngineer.GameObjects
 
             if (_movement.Length() > 0f)
                 _movement.Normalize();
-            if (_movement.X != 0f)
-                _velocity.X += _movement.X * _movementSpeed * deltaSeconds;
-            if (_movement.Y != 0f)
-                _velocity.Y += _movement.Y * _movementSpeed * deltaSeconds;
+
+            if (_gravityStatus)
+            {
+                _velocity = new Vector2(0f, 0f);
+
+                if (_movement.X != 0f)
+                    _velocity.X += _movement.X * _movementSpeed * deltaSeconds;
+                if (_movement.Y != 0f)
+                    _velocity.Y += _movement.Y * _movementSpeed * deltaSeconds;
+            }
+            else
+            {
+                if (_movement.X != 0f)
+                    _velocity.X += _movement.X * _noGravityMovementSpeed * deltaSeconds;
+                if (_movement.Y != 0f)
+                    _velocity.Y += _movement.Y * _noGravityMovementSpeed * deltaSeconds;
+            }
 
             // Moves player, collision box and Progress Bar
             _position += _velocity;
             Bounds.Position += _velocity;
-            Vector2 progressBarPos = _fixProgress.GetPosition();
-            progressBarPos = _position;
+            Vector2 progressBarPos = _position;
             progressBarPos.Y -= _sprite.TextureRegion.Height;
             // progressBarPos.X -= _sprite.TextureRegion.Width; 
             _fixProgress.SetPosition(progressBarPos);
@@ -185,8 +199,6 @@ namespace SpaceEngineer.GameObjects
             // If collision is found, prevent player and collision box from moving through
             _position -= collisionInfo.PenetrationVector;
             Bounds.Position -= collisionInfo.PenetrationVector;
-
-            // TODO - Add collision detection to check if player is close enough to interact with a component
         }
 
         public void SetFocus(ShipComponent comp)
@@ -238,6 +250,15 @@ namespace SpaceEngineer.GameObjects
         public float GetHealthPercentage()
         {
             return _currentHp / _maxHp;
+        }
+
+        /// <summary>
+        /// Toggles Gravity status for the player between true and false
+        /// </summary>
+        /// <param name="toggle">True = Gravity is fixed and working; False = Gravity needs fixing and player movement will be affected</param>
+        public void ToggleGravity(bool toggle)
+        {
+            _gravityStatus = toggle;
         }
     }
 }
