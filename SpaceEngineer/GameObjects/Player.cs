@@ -26,7 +26,7 @@ namespace SpaceEngineer.GameObjects
         private float _noGravityMovementSpeed = 3f;
         private AnimatedSprite _sprite;
         private string _currentAnimation;
-        // Current direction the player sprite should be looking at
+        // Current direction the player sprite should be looking at when not moving
         private Direction _currentDir;
 
         private float _maxHp = 20f;
@@ -59,21 +59,32 @@ namespace SpaceEngineer.GameObjects
 
         public Player(SpriteSheet spriteSheet, Vector2 position, OrthographicCamera camera, ProgressBar fixProgress)
         {
+            // Movement and Position parameters
             _movement = new Vector2(0f, 0f);
             _velocity = new Vector2(0f, 0f);
             _position = position;
+
+            // Sprite parameters
             _sprite = new AnimatedSprite(spriteSheet);
             _currentAnimation = "idleRight";
             _sprite.Play(_currentAnimation);
+
+            // Sets local (player) _camera
             _camera = camera;
+
+            // Collision Parameters
             Vector2 boundsStartPos = position;
             boundsStartPos.X -= _sprite.TextureRegion.Width / 4;
             Bounds = new RectangleF(boundsStartPos, new Size2(_sprite.TextureRegion.Width / 2, _sprite.TextureRegion.Height / 2));
+
+            // Progress bar parameter
             _fixProgress = fixProgress;
             Vector2 progressBarPos = _fixProgress.GetPosition();
             progressBarPos.Y -= _sprite.TextureRegion.Height;
             _fixProgress.SetPosition(progressBarPos);
             _fixProgress.SetActive(false);
+
+            // Health paramter
             _currentHp = _maxHp;
         }
 
@@ -111,6 +122,8 @@ namespace SpaceEngineer.GameObjects
             if (_movement.Length() > 0f)
                 _movement.Normalize();
 
+            // If Gravity is On then player should move as normal;
+            // Else velocity should be cumulative to give a 0G feel.
             if (_gravityStatus)
             {
                 _velocity = new Vector2(0f, 0f);
@@ -120,6 +133,7 @@ namespace SpaceEngineer.GameObjects
                 if (_movement.Y != 0f)
                     _velocity.Y += _movement.Y * _movementSpeed * deltaSeconds;
             }
+
             else
             {
                 if (_movement.X != 0f)
@@ -135,11 +149,26 @@ namespace SpaceEngineer.GameObjects
             progressBarPos.Y -= _sprite.TextureRegion.Height;
             _fixProgress.SetPosition(progressBarPos);
 
+            UpdateAnimation();
+
+            _sprite.Play(_currentAnimation);
+            _sprite.Update(deltaSeconds);
+
+            // Updates 'OrthographicCamera' position to players current position.
+            _camera.LookAt(_position);
+        }
+
+        private void UpdateAnimation()
+        {
+            // Sets current looking direction which determines the side the player sprite is looking at.
             if (_movement.X != 0f)
             {
                 _currentDir = _movement.X < 0f ? Direction.Left : Direction.Right;
             }
 
+            // If X or Y are greater than 0f then the player animation should be walking right
+            // If X or Y are less than 0f then the player animation should be walking left
+            // If none of the above is true then player must be idle; Standing Animation is set depending on '_currentDir' value
             if (_movement.X > 0f || _movement.Y > 0f)
                 _currentAnimation = "walkRight";
             else if (_movement.X < 0f || _movement.Y < 0f)
@@ -147,9 +176,6 @@ namespace SpaceEngineer.GameObjects
             else
                 _currentAnimation = _currentDir == Direction.Right ? _currentAnimation = "idleRight" : "idleLeft";
 
-            _sprite.Play(_currentAnimation);
-            _sprite.Update(deltaSeconds);
-            _camera.LookAt(_position);
         }
 
         public void Interact()
@@ -193,14 +219,32 @@ namespace SpaceEngineer.GameObjects
             }
         }
 
+        private void UpdateDamage(float deltaSeconds)
+        {
+            // If _o2status is true, then O2 filters are OK, therefore, we do not deduct health from the player
+            if (_o2status) return;
+
+            _currentDamageTimer = Math.Clamp(_currentDamageTimer + deltaSeconds, 0f, _damageTimer);
+            if (_currentDamageTimer >= _damageTimer)
+            {
+                _currentHp = Math.Clamp(_currentHp - 1, 0, _maxHp);
+                _currentDamageTimer = 0f;
+            }
+        }
+
         public void OnCollision(CollisionEventArgs collisionInfo)
         {
             // If collision is found, prevent player and collision box from moving through
             _position -= collisionInfo.PenetrationVector;
+            // Reset _velocity to Zero on collision to ensure that the player can't overshoot if walking against the wall for too long
             _velocity = Vector2.Zero;
             Bounds.Position -= collisionInfo.PenetrationVector;
         }
 
+        /// <summary>
+        /// Sets player current interactable object.
+        /// </summary>
+        /// <param name="comp">ShipComponent that the play should interact with on Mouse Left-Click</param>
         public void SetFocus(ShipComponent comp)
         {
             _focus = comp;
@@ -211,6 +255,9 @@ namespace SpaceEngineer.GameObjects
             _inventory = inventory;
         }
 
+        /// <summary>
+        /// Get Player's current position
+        /// </summary>
         public Vector2 GetPosition()
         {
             return _position;
@@ -225,19 +272,9 @@ namespace SpaceEngineer.GameObjects
             _o2status = toggle;
         }
 
-        private void UpdateDamage(float deltaSeconds)
-        {
-            // If _o2status is true, then O2 filters are OK, therefore, we do not deduct health from the player
-            if (_o2status) return;
-
-            _currentDamageTimer = Math.Clamp(_currentDamageTimer + deltaSeconds, 0f, _damageTimer);
-            if (_currentDamageTimer >= _damageTimer)
-            {
-                _currentHp = Math.Clamp(_currentHp - 1, 0, _maxHp);
-                _currentDamageTimer = 0f;
-            }
-        }
-
+        /// <summary>
+        /// Heal player's HP back to maximum
+        /// </summary>
         public void HealDamage()
         {
             _currentHp = _maxHp;
