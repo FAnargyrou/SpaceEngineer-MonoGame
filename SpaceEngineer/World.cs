@@ -35,22 +35,22 @@ namespace SpaceEngineer
         private CollisionComponent _collisionComponent;
 
         // Map boundaries defined by TileMap dimensions and used by the CollisionComponent
-        private int MapWidth;
-        private int MapHeight;
+        private int _mapWidth;
+        private int _mapHeight;
 
         TiledMap _tiledMap;
         TiledMapRenderer _tiledMapRenderer;
 
-        InventoryHUD playerInventoryHud;
-        InventoryHUD toolboxInventoryHud;
+        InventoryHUD _playerInventoryHud;
+        InventoryHUD _toolboxInventoryHud;
         HealthBar _healthBar;
 
         // Camera; Moved with Player
-        OrthographicCamera _camera;
-        float _cameraScale;
+        readonly OrthographicCamera _camera;
+        readonly float _cameraScale;
 
-        private int _maxTimer = 10;
-        private int _minTimer = 5;
+        private readonly int _maxTimer = 10;
+        private readonly int _minTimer = 5;
         private float _currentTimer = 0f;
         private int _nextEvent = 0;
 
@@ -107,8 +107,8 @@ namespace SpaceEngineer
             _tiledMapRenderer.Update(gameTime);
             // Update used for Collision Detection
             _collisionComponent.Update(gameTime);
-            playerInventoryHud.Update(gameTime);
-            toolboxInventoryHud.Update(gameTime);
+            _playerInventoryHud.Update(gameTime);
+            _toolboxInventoryHud.Update(gameTime);
             _healthBar.UpdateHp(_player.GetHealthPercentage());
 
             UpdateBreakEvent((float)gameTime.ElapsedGameTime.TotalSeconds);
@@ -135,8 +135,8 @@ namespace SpaceEngineer
 
             // HUD Section
             spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-            playerInventoryHud.Draw(spriteBatch);
-            toolboxInventoryHud.Draw(spriteBatch);
+            _playerInventoryHud.Draw(spriteBatch);
+            _toolboxInventoryHud.Draw(spriteBatch);
             _healthBar.Draw(spriteBatch);
             spriteBatch.DrawString(_font, _brokenList, new Vector2(50f, 100f), Color.White);
             spriteBatch.End();
@@ -149,10 +149,10 @@ namespace SpaceEngineer
             _tiledMap = _game.Content.Load<TiledMap>("Test");
             _tiledMapRenderer = new TiledMapRenderer(_game.GraphicsDevice, _tiledMap);
 
-            MapWidth = _tiledMap.WidthInPixels;
-            MapHeight = _tiledMap.HeightInPixels;
+            _mapWidth = _tiledMap.WidthInPixels;
+            _mapHeight = _tiledMap.HeightInPixels;
 
-            _collisionComponent = new CollisionComponent(new RectangleF(0, 0, MapWidth, MapHeight));
+            _collisionComponent = new CollisionComponent(new RectangleF(0, 0, _mapWidth, _mapHeight));
 
             TiledMapTileLayer collidables = _tiledMap.GetLayer<TiledMapTileLayer>("Collidable");
 
@@ -198,7 +198,7 @@ namespace SpaceEngineer
                         spawn.X += sprite.Origin.X;
                         spawn.Y += sprite.Origin.Y;
 
-                        Toolbox t = new Toolbox(sprite, spawn, playerInventoryHud, toolboxInventoryHud);
+                        Toolbox t = new Toolbox(sprite, spawn, _playerInventoryHud, _toolboxInventoryHud);
                         _entities.Add(t);
                         break;
                 }
@@ -210,7 +210,7 @@ namespace SpaceEngineer
             ProgressBar fixProgress = new ProgressBar(progressFill, playerSpawn, new Vector2(1f, 1f), progressBorder);
 
             _player = new Player(_game.Content.Load<SpriteSheet>("player.sf", new JsonContentLoader()), playerSpawn, _camera, fixProgress);
-            _player.SetInventory(playerInventoryHud.GetInventory());
+            _player.SetInventory(_playerInventoryHud.GetInventory());
             _collisionComponent.Insert(_player);
         }
 
@@ -222,8 +222,7 @@ namespace SpaceEngineer
             foreach (TiledMapObject obj in objects)
             {
                 // Default asset for this object. Defined by Custom Property called 'sprite' in Tiled
-                string assetName;
-                if (!obj.Properties.TryGetValue("sprite", out assetName)) continue;
+                if (!obj.Properties.TryGetValue("sprite", out string assetName)) continue;
                 // Load sprite with given asset path/name
                 Sprite sprite = new Sprite(_game.Content.Load<Texture2D>(assetName));
 
@@ -294,8 +293,10 @@ namespace SpaceEngineer
             Inventory pInventory = new Inventory();
 
             Vector2 toolboxInventoryPos = new Vector2(400f, 400f);
-            Inventory tInventory = new Inventory();
-            tInventory.slots = 4;
+            Inventory tInventory = new Inventory
+            {
+                slots = 4
+            };
 
             Sprite drillSprite = new Sprite(_game.Content.Load<Texture2D>("Items/drill"));
             Item drill = new Item(drillSprite, ItemType.Drill);
@@ -315,8 +316,8 @@ namespace SpaceEngineer
             tInventory.SetDepositInventory(pInventory);
             pInventory.SetDepositInventory(tInventory);
 
-            playerInventoryHud = new InventoryHUD(inventoryPos, btnSprite, guiScale, pInventory);
-            toolboxInventoryHud = new InventoryHUD(toolboxInventoryPos, btnSprite, guiScale, tInventory);
+            _playerInventoryHud = new InventoryHUD(inventoryPos, btnSprite, guiScale, pInventory);
+            _toolboxInventoryHud = new InventoryHUD(toolboxInventoryPos, btnSprite, guiScale, tInventory);
 
 
             // Player health bar
